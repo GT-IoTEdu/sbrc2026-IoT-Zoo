@@ -26,7 +26,7 @@ def hybrid_topology():
     # IP do computador Windows (Host) onde o Mosquitto está rodando
     BROKER_REAL_IP = "192.168.128.1" 
     
-    PATH_TO_SPLIT_DATA = "/home/vagner/iot-devices/air_quality_urban_sensor/dataset_splited"
+    PATH_TO_SPLIT_DATA = "/home/vagner/virtual-testbed/devices/air_quality_urban_sensor/dataset_splited"
 
     info(f'*** Configurando sensores para apontar para Broker Real: {BROKER_REAL_IP}\n')
 
