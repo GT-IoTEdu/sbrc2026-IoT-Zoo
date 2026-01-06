@@ -1,0 +1,7 @@
+# Ignora CSVs pesados
+*.csv
+*.log
+
+# Mas permite os compactados
+!*.csv.xz
+!*.log.xz
