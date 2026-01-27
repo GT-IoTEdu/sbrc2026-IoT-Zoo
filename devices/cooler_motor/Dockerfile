@@ -1,34 +1,29 @@
 FROM ubuntu:focal
 
-RUN apt update && apt install -y --no-install-recommends \
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping \
     sntp \
     python3 \
     python3-pip \
     wget \
     ca-certificates \
-    # openssh server is required to make the device vulnerable to the SinetStream attack scenario
     openssh-server \
+    xz-utils \
     && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && apt-get install -y ethtool iputils-ping iproute2 net-tools
-
-# To make this device vulnerable to Mirai, we need a telnet server and the busybox shell.
-# busybox from Debian repos does not include 'telnetd'.
-# By default, this does not make it vulnerable because telnetd is not running automatically.
-RUN wget https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox &&\
-    chmod +x busybox &&\
-    mv busybox /bin &&\
-    printf '#!/bin/sh\n/bin/busybox sh\n' > /bin/busyboxsh &&\
-    chmod +x /bin/busyboxsh
 
 RUN pip3 install --no-cache-dir paho-mqtt==1.6.1
 
-COPY accelerometer/accelerometer.csv.xz /accelerometer.csv.xz
+# Cria dados dummy (já que não temos o xz original)
+RUN echo "timestamp,x,y,z" > /accelerometer.csv && \
+    for i in $(seq 1 100); do echo "$i,0.1,0.2,0.3" >> /accelerometer.csv; done && \
+    xz /accelerometer.csv
+
+# AQUI ESTÁ A MÁGICA: Trazendo de volta a cópia dos certificados
 COPY --from=iotsim/certificates:latest /artifacts/pki/iot-sim-ca.crt /iot-sim-ca.crt
 
 COPY client.py /client.py
 RUN chmod +x /client.py
 
 ENTRYPOINT ["/client.py"]
-
