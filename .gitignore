@@ -5,3 +5,4 @@
 # Mas permite os compactados
 !*.csv.xz
 !*.log.xz
+devices/urban_observatory/**/*.csv

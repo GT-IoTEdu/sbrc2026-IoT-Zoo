@@ -1,21 +1,18 @@
-# 1. Usamos a imagem oficial nova (MediaMTX)
 FROM bluenviron/mediamtx:latest AS rtsp
 
-# 2. Base Alpine (igual ao original)
-FROM alpine
+FROM ubuntu:20.04
 
-# --- CORREÇÃO PARA MININET ---
-# Instala bash e ethtool para funcionar na rede virtual
-RUN apk add --no-cache bash iproute2 iputils ethtool
+ENV DEBIAN_FRONTEND=noninteractive
 
-# 3. Copia o binário da nova imagem
-# (Nota: o nome mudou de 'rtsp-simple-server' para 'mediamtx')
+RUN apt-get update && apt-get install -y \
+    bash \
+    iproute2 \
+    iputils-ping \
+    ethtool \
+    && rm -rf /var/lib/apt/lists/*
+
+
 COPY --from=rtsp /mediamtx /
-
-# 4. Copia sua configuração antiga, mas renomeia para o padrão novo
-# O servidor novo espera ler 'mediamtx.yml'
 COPY rtsp-simple-server.yml /mediamtx.yml
 
-# 5. Define o ponto de entrada (não usamos ENTRYPOINT para o Mininet poder controlar se precisar)
-# Mas deixamos o comando padrão pronto
 CMD [ "/mediamtx" ]

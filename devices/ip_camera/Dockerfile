@@ -34,4 +34,5 @@ RUN ffmpeg -i /original.mp4 -an -r 25 -s:v 1280x720 -filter:v "hue=s=0" -codec:v
     ffprobe /video.mp4 &&\
     ls -lh /video.mp4
 
-ENTRYPOINT [ "/ip_camera.py" ]
+#ENTRYPOINT [ "/ip_camera.py" ]
+CMD [ "python3", "-u", "/ip_camera.py" ]

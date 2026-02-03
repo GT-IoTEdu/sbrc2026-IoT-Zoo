@@ -12,8 +12,8 @@ echo "--- 🏗️  Passo 2: Construindo Dispositivos ---"
 echo "[1/11] 📡 Broker MQTT..."
 docker build -t myzoo/mqtt_broker ./devices/mqtt_broker
 
-echo "[2/11] 🏙️  Urban Sensor..."
-docker build -t myzoo/urban_sensor ./devices/air_quality_urban_repository
+echo "[2/11] 🏙️  Urban Observatory..."
+docker build -t myzoo/urban_sensor ./devices/urban_observatory
 
 echo "[3/11] 📹 Servidor Vídeo..."
 docker build -t myzoo/server_video ./devices/stream_server
@@ -25,7 +25,6 @@ echo "[5/11] 📺 Consumer Video..."
 docker build -t myzoo/consumer_video ./devices/stream_consumer
 
 echo "[6/11] 🏭 Cooler Motor (Agora com suporte a TLS)..."
-# Agora este build vai funcionar porque 'iotsim/certificates' existe localmente!
 docker build -t myzoo/cooler_motor ./devices/cooler_motor
 
 echo "[7/11] ⚙️  Preditiva..."
@@ -43,4 +42,4 @@ docker build -t myzoo/air_quality ./devices/air_quality
 echo "[11/11] 🏥 mHealth..."
 docker build -t myzoo/mhealth ./devices/mhealth-device
 
-echo "✅ SUCESSO! Ambiente seguro reconstruído."
+echo "✅ SUCESSO! Ambiente construído."
