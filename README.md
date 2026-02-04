@@ -120,7 +120,8 @@ The environment simulates a heterogeneous network where distinct IoT domains coe
 | **Industry 4.0** | **Telemetry** | `predictive` (`10.0.0.5`) | Predictive maintenance sensor monitoring machine status (JSON). |
 | **Smart Building** | **Management** | `predio` (`10.0.0.2`) | General occupancy and lighting sensors (JSON). |
 | **Smart Home** | **Automation** | `domotic` (`10.0.0.4`) | Residential automation using legacy **XML** format. |
-| **Smart City** | **Base Station** | `air` (`10.0.0.6`) | Legacy air quality station (**XML**). |
+| **Smart City** | **Base Station** | `air` (`10.0.0.6`) | Air quality station (**XML**). |
+| **Smart City** | **Smart Lighting** | `sl_gw` (`10.0.0.80`) | Monitors energy consumption (kWh), ambient light (Lux), and control actions for fault detection. |
 | **CCTV** | **IP Camera** | `v_camera` (`10.0.0.21`) | Transmits real video stream (H.264) via FFmpeg (RTSP/UDP). |
 | **CCTV** | **DVR Client** | `v_consumer` (`10.0.0.22`) | Consumer node that subscribes to and records the RTSP stream. |
 | **Air Quality** | **Carbon Monoxide** | `gw_co` (`10.0.0.50`) | Real data from Urban Observatory (Newcastle). |
