@@ -73,7 +73,7 @@ sudo ./build_images.sh
 
 ---
 
-## ▶️ Executando o Experimento
+## ▶️ Running the Experiment
 
 The script `run_experiment.py` is the main orchestrator. It brings up the topology, configures routing, and starts traffic capture.
 
