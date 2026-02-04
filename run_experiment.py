@@ -153,6 +153,8 @@ def run():
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "SLEEP_TIME": "5"}, dcmd="/bin/bash")
     patient1 = net.addDocker('patient1', ip="10.0.0.7", dimage="myzoo/mhealth",
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "hospital/patients", "SUBJECT_ID": "1", "SPEED_FACTOR": "0.02"}, dcmd="/client.py")
+    lighting_gw = net.addDocker('sl_gw', ip="10.0.0.80", dimage="myzoo/smart_lighting", 
+        environment={"MQTT_BROKER_ADDR": "10.0.0.100", "MQTT_TOPIC_PUB": "city/lighting", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
 
     # Centralized creation of urban gateways
     gateways = []
@@ -181,7 +183,7 @@ def run():
     s1 = net.addSwitch('s1')
     
     # Consolidate all nodes
-    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, v_server, v_camera, v_consumer] + gateways
+    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, v_server, v_camera, v_consumer] + gateways
     
     for node in all_nodes:
         net.addLink(node, s1)
@@ -219,6 +221,7 @@ def run():
     predictive.cmd('python3 -u /client.py > /dev/null 2>&1 &')
     air.cmd('python3 -u /client.py > /dev/null 2>&1 &')
     patient1.cmd('python3 -u /client.py > /dev/null 2>&1 &')
+    lighting_gw.cmd('python3 -u /client.py > /tmp/sl_gw.log 2>&1 &')
     
     v_camera.cmd('python3 -u /ip_camera.py > /tmp/v_cam.log 2>&1 &')
     v_consumer.cmd('python3 -u /consume.py > /tmp/v_cons.log 2>&1 &')
