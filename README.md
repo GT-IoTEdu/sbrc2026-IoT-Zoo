@@ -17,8 +17,8 @@ To ensure faithful experiment reproduction, make sure you meet the following req
 
 * 🐧 **Operating System:** Ubuntu 20.04 LTS or 22.04 LTS (Virtual Machine or Bare Metal).
 * 💻 **Recommended Hardware:** Minimum 8GB RAM and 2 vCPUs
+* 💾 **Storage:** At least 50 GB of available disk space (SSD recommended).
 * 🔑 **Permissions:** `root` access (`sudo`) is required for Mininet to manage network interfaces.
-
 ---
 
 ## 🚀 Installation Guide (Step by Step)
