@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """
 # Dataset
-    Sensor Based Aquaponics Fish Pond Dataset
     /dataset.csv.xz (LZMA/XZ)
 
 # MQTT Topic
-    aquaponics/fish_pond
+    elevator/traction/predictive_maintenance
 
 # Format
-    created_at,entry_id,Temperature (C),Turbidity(NTU),Dissolved Oxygen(g/ml),PH,Ammonia(g/ml),Nitrate(g/ml),Population,Fish_Length(cm),Fish_Weight(g)
-    2021-06-19 00:00:05 CET,1889,24.875,100,4.505,8.43365,0.45842,193,50,7.11,2.91
+    Date,Time,Acceleration,Speed,Vibration
+    2024-01-01,00:00:00,0.5,1.2,0.3
 """
 
 import csv
@@ -28,7 +27,7 @@ import paho.mqtt.publish as publish
 
 config = {
     "MQTT_BROKER_ADDR": "localhost",
-    "MQTT_TOPIC_PUB": "aquaponics/fish_pond",
+    "MQTT_TOPIC_PUB": "elevator/traction/predictive_maintenance",
     "MQTT_AUTH": "",
     "MQTT_QOS": 0,
     "TLS": "",
@@ -99,18 +98,9 @@ def telemetry(
     dataset_fname = "/dataset.csv.xz"
     dataset_sep = ","
 
-    headers = [
-        "created_at", "entry_id",
-        "temperature", "turbidity", "dissolved_oxygen", "ph",
-        "ammonia", "nitrate", "population",
-        "fish_length", "fish_weight",
-    ]
-    units = [
-        None, None,
-        "C", "NTU", "g/ml", None,
-        "g/ml", "g/ml", None,
-        "cm", "g",
-    ]
+    # Headers matching: Date,Time,Acceleration,Speed,Vibration
+    headers = ["date", "time", "acceleration", "speed", "vibration"]
+    units = ["DD/MM/YYYY", "HH:MM:SS", "m/s^2", "m/s", "mm/s"]
 
     try:
         data_iter = readloop(dataset_fname, lzma.open)
@@ -138,37 +128,17 @@ def telemetry(
                 if len(row) != len(headers):
                     raise ValueError(f"unexpected column count: got={len(row)} expected={len(headers)} line={raw_line!r}")
 
-                # created_at (string timestamp)
-                row[0] = row[0].strip()
-                # entry_id (int)
-                row[1] = int(row[1])
-                # Temperature (C)
-                row[2] = float(row[2])
-                # Turbidity (NTU)
-                row[3] = float(row[3])
-                # Dissolved Oxygen (g/ml)
-                row[4] = float(row[4])
-                # PH
-                row[5] = float(row[5])
-                # Ammonia (g/ml)
-                row[6] = float(row[6])
-                # Nitrate (g/ml)
-                row[7] = float(row[7])
-                # Population
-                row[8] = int(row[8])
-                # Fish_Length (cm)
-                row[9] = float(row[9])
-                # Fish_Weight (g)
-                row[10] = float(row[10])
+                # Parse data types: Date, Time as strings; Acceleration, Speed, Vibration as floats
+                row[0] = row[0].strip()  # date
+                row[1] = row[1].strip()  # time
+                row[2] = float(row[2])   # acceleration
+                row[3] = float(row[3])   # speed
+                row[4] = float(row[4])   # vibration
 
                 data_dict = data2dict(headers, row, units=units)
                 payload = as_json(data_dict)
 
-                print(
-                    f"[telemetry] sending to `{mqtt_topic}': "
-                    f"temp={row[2]} C, ph={row[5]}, turbidity={row[3]} NTU, "
-                    f"do={row[4]} g/ml, population={row[8]}"
-                )
+                print(f"[telemetry] sending to `{mqtt_topic}': accel={row[2]} m/s^2, speed={row[3]} m/s, vibration={row[4]} mm/s")
 
                 publish.single(
                     topic=mqtt_topic,
