@@ -1,0 +1,16 @@
+Sensor Based Aquaponics Fish Pond Dataset
+
+Source: https://www.kaggle.com/datasets/ogbuokiriblessing/sensor-based-aquaponics-fish-pond-datasets
+
+Columns:
+created_at - Timestamp (CET timezone)
+entry_id - Entry identifier
+Temperature (C) - Water temperature in Celsius
+Turbidity(NTU) - Turbidity in Nephelometric Turbidity Units
+Dissolved Oxygen(g/ml)- Dissolved oxygen concentration
+PH - Water pH level
+Ammonia(g/ml) - Ammonia concentration
+Nitrate(g/ml) - Nitrate concentration
+Population - Fish population count
+Fish_Length(cm) - Average fish length in centimeters
+Fish_Weight(g) - Average fish weight in grams
