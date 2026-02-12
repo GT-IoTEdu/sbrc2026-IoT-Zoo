@@ -159,7 +159,7 @@ def run():
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "school/environmental_sensors", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
     aquaponics_gw = net.addDocker('aq_gw', ip="10.0.0.201", dimage="myzoo/aquaponics_fish_pond", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "aquaponics/fish_pond", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    greenhouse_gw =  net.addDocker('gr_gw', ip="10.0.0.202", dimage="myzoo/greenhouse_sensor", 
+    greenhouse_gw =  net.addDocker('gr_gw', ip="10.0.0.203", dimage="myzoo/greenhouse_sensor", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "greenhouse/env", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
     # Traction Elevator Predictive Maintenance (IP 10.0.0.202)
     traction_elevator_gw = net.addDocker('te_gw', ip="10.0.0.202", dimage="myzoo/traction_elevator", 
