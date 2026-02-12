@@ -159,6 +159,8 @@ def run():
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "school/environmental_sensors", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
     aquaponics_gw = net.addDocker('aq_gw', ip="10.0.0.201", dimage="myzoo/aquaponics_fish_pond", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "aquaponics/fish_pond", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
+    elevator_gw = net.addDocker('elevator_gw', ip="10.0.0.202", dimage="myzoo/elevator_system", 
+        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "building/elevator", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
 
     # Centralized creation of urban gateways
     gateways = []
