@@ -6,3 +6,4 @@
 !*.csv.xz
 !*.log.xz
 devices/urban_observatory/**/*.csv
+*.pcap
