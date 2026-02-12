@@ -159,12 +159,14 @@ def run():
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "school/environmental_sensors", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
     aquaponics_gw = net.addDocker('aq_gw', ip="10.0.0.201", dimage="myzoo/aquaponics_fish_pond", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "aquaponics/fish_pond", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    greenhouse_gw =  net.addDocker('gr_gw', ip="10.0.0.202", dimage="myzoo/greenhouse_sensor", 
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "greenhouse/env", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
+ 
     # Traction Elevator Predictive Maintenance (IP 10.0.0.202)
     traction_elevator_gw = net.addDocker('te_gw', ip="10.0.0.202", dimage="myzoo/traction_elevator", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "elevator/traction/predictive_maintenance", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-
+    greenhouse_gw =  net.addDocker('gr_gw', ip="10.0.0.203", dimage="myzoo/greenhouse_sensor", 
+        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "greenhouse/env", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
+    farming_gw =  net.addDocker('far_gw', ip="10.0.0.203", dimage="myzoo/farming_sensor", 
+        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "farming_sensor/env", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
     # Centralized creation of urban gateways
     gateways = []
     
@@ -192,7 +194,7 @@ def run():
     s1 = net.addSwitch('s1')
     
     # Consolidate all nodes (added traction_elevator_gw)
-    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw, traction_elevator_gw, v_server,greenhouse_gw  ,v_camera, v_consumer] + gateways
+    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw,farming_gw  ,traction_elevator_gw, v_server,greenhouse_gw  ,v_camera, v_consumer] + gateways
     
     for node in all_nodes:
         net.addLink(node, s1)
@@ -230,6 +232,7 @@ def run():
     predictive.cmd('python3 -u /client.py > /dev/null 2>&1 &')
     air.cmd('python3 -u /client.py > /dev/null 2>&1 &')
     patient1.cmd('python3 -u /client.py > /dev/null 2>&1 &')
+    farming_gw.cmd('python3 -u /client.py > /tmp/far_gw.log 2>&1 &')
     lighting_gw.cmd('python3 -u /client.py > /tmp/sl_gw.log 2>&1 &')
     envir_sensors_gw.cmd('python3 -u /client.py > /tmp/es_gw.log 2>&1 &')
     greenhouse_gw.cmd('python3 -u /client.py > /tmp/gr_gw.log 2>&1 &')
