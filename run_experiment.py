@@ -159,7 +159,7 @@ def run():
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "school/environmental_sensors", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
     aquaponics_gw = net.addDocker('aq_gw', ip="10.0.0.201", dimage="myzoo/aquaponics_fish_pond", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "aquaponics/fish_pond", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    elevator_gw = net.addDocker('elevator_gw', ip="10.0.0.202", dimage="myzoo/elevator_system", 
+    elevator_gw = net.addDocker('el_gw', ip="10.0.0.202", dimage="myzoo/elevator_system", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "building/elevator", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
 
     # Centralized creation of urban gateways
@@ -189,7 +189,7 @@ def run():
     s1 = net.addSwitch('s1')
     
     # Consolidate all nodes
-    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw, v_server, v_camera, v_consumer] + gateways
+    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw, elevator_gw, v_server, v_camera, v_consumer] + gateways
     
     for node in all_nodes:
         net.addLink(node, s1)
@@ -230,6 +230,7 @@ def run():
     lighting_gw.cmd('python3 -u /client.py > /tmp/sl_gw.log 2>&1 &')
     envir_sensors_gw.cmd('python3 -u /client.py > /tmp/es_gw.log 2>&1 &')
     aquaponics_gw.cmd('python3 -u /client.py > /tmp/aq_gw.log 2>&1 &')
+    elevator_gw.cmd('python3 -u /client.py > /tmp/el_gw.log 2>&1 &')
     
     v_camera.cmd('python3 -u /ip_camera.py > /tmp/v_cam.log 2>&1 &')
     v_consumer.cmd('python3 -u /consume.py > /tmp/v_cons.log 2>&1 &')
