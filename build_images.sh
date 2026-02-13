@@ -27,32 +27,32 @@ docker build -t myzoo/consumer_video ./devices/stream_consumer
 echo "[6/17] 🏭 Cooler Motor (Now with TLS support)..."
 docker build -t myzoo/cooler_motor ./devices/cooler_motor
 
-echo "[7/17] ⚙️  Predictive Maintenance..."
-docker build -t myzoo/predictive_maintenance ./devices/predictive_maintenance
-
-echo "[8/17] ⚙️  Elevator Predictive Maintenance..."
-docker build -t myzoo/elevator_predictive_maintenance ./devices/elevator_predictive_maintenance
-
-echo "[9/17] 🏢 Smart Building..."
+echo "[7/17] 🏢 Smart Building..."
 docker build -t myzoo/building_monitor ./devices/building_monitor
 
-echo "[10/17] 🏠 Home Automation..."
+echo "[8/17] 🏠 Home Automation..."
 docker build -t myzoo/domotic_monitor ./devices/domotic_monitor
 
-echo "[11/17] 🌫️  Air Legacy..."
+echo "[9/17] 🌫️  Air Legacy..."
 docker build -t myzoo/air_quality ./devices/air_quality
 
-echo "[12/17] 🏥 mHealth..."
+echo "[10/17] 🏥 mHealth..."
 docker build -t myzoo/mhealth ./devices/mhealth-device
 
-echo "[13/17] 💡 Smart Lighting..."
+echo "[11/17] 💡 Smart Lighting..."
 docker build -t myzoo/smart_lighting ./devices/smart_lighting
 
-echo "[14/17] 💡 Environmental Sensors..."
+echo "[12/17] 💡 Environmental Sensors..."
 docker build -t myzoo/environmental_sensors ./devices/environmental_sensors
 
-echo "[15/17] 🐟 Aquaponics Fish Pond..."
+echo "[13/17] 🐟 Aquaponics Fish Pond..."
 docker build -t myzoo/aquaponics_fish_pond ./devices/aquaponics_fish_pond
+
+echo "[14/17] ⚙️  Predictive Maintenance..."
+docker build -t myzoo/predictive_maintenance ./devices/predictive_maintenance
+
+echo "[15/17] ⚙️  Elevator Predictive Maintenance..."
+docker build -t myzoo/elevator_predictive_maintenance ./devices/elevator_predictive_maintenance
 
 echo "[16/17] 🛗 Traction Elevator Predictive Maintenance..."
 docker build -t myzoo/traction_elevator ./devices/traction-elevator-predictive-maintenance
