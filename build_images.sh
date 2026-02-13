@@ -51,7 +51,10 @@ docker build -t myzoo/environmental_sensors ./devices/environmental_sensors
 echo "[14/15] 🐟 Aquaponics Fish Pond..."
 docker build -t myzoo/aquaponics_fish_pond ./devices/aquaponics_fish_pond
 
-echo "[15/15] 🛗 Traction Elevator Predictive Maintenance..."
+echo "[15/16] 🛗 Traction Elevator Predictive Maintenance..."
 docker build -t myzoo/traction_elevator ./devices/traction-elevator-predictive-maintenance
+
+echo "[16/16] 👩‍⚕️ Nurse Stress Prediction..."
+docker build -t myzoo/nurse_stress ./devices/nurse-stress-prediction
 
 echo "✅ SUCCESS! Environment built."
