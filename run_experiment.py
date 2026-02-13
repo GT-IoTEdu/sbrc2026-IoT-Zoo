@@ -232,6 +232,7 @@ def run():
     predictive.cmd('python3 -u /client.py > /dev/null 2>&1 &')
     air.cmd('python3 -u /client.py > /dev/null 2>&1 &')
     patient1.cmd('python3 -u /client.py > /dev/null 2>&1 &')
+    farming_gw.cmd('python3 -u /client.py > /tmp/far_gw.log 2>&1 &')
     lighting_gw.cmd('python3 -u /client.py > /tmp/sl_gw.log 2>&1 &')
     envir_sensors_gw.cmd('python3 -u /client.py > /tmp/es_gw.log 2>&1 &')
     greenhouse_gw.cmd('python3 -u /client.py > /tmp/gr_gw.log 2>&1 &')
