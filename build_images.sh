@@ -60,7 +60,10 @@ docker build -t myzoo/traction_elevator ./devices/traction-elevator-predictive-m
 echo "[17/17] 🛗 Greenhouse sensors..."
 docker build -t myzoo/greenhouse_sensor ./devices/greenhouse_sensor
 
-echo "[17/17] 🌾 farming sensors..."
+echo "[17/18] 🌾 Farming sensors..."
 docker build -t myzoo/farming_sensor ./devices/farming_sensor
+
+echo "[18/18] 🏢 Smart Building M5 (Energy & Environment)..."
+docker build -t myzoo/smart_building_m5 ./devices/smart_building_m5
 
 echo "✅ SUCCESS! Environment built."

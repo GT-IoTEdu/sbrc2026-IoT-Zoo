@@ -167,8 +167,10 @@ def run():
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "elevator/traction/predictive_maintenance", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
     greenhouse_gw =  net.addDocker('gr_gw', ip="10.0.0.205", dimage="myzoo/greenhouse_sensor", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "greenhouse/env", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    farming_gw =  net.addDocker('far_gw', ip="10.0.0.206", dimage="myzoo/farming_sensor", 
+    farming_gw =  net.addDocker('far_gw', ip="10.0.0.206", dimage="myzoo/farming_sensor",
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "farming_sensor/env", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
+    smart_building_gw = net.addDocker('sb_gw', ip="10.0.0.207", dimage="myzoo/smart_building_m5",
+        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "building/m5", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
 
 
     # Centralized creation of urban gateways
@@ -197,7 +199,7 @@ def run():
 
     s1 = net.addSwitch('s1')
     
-    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw, elevator_gw, pred_maint_gw, pred_maint_gw, traction_elevator_gw, greenhouse_gw, farming_gw, v_server, v_camera, v_consumer] + gateways
+    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw, elevator_gw, pred_maint_gw, pred_maint_gw, traction_elevator_gw, greenhouse_gw, farming_gw, smart_building_gw, v_server, v_camera, v_consumer] + gateways
     
     for node in all_nodes:
         net.addLink(node, s1)
@@ -244,6 +246,7 @@ def run():
     pred_maint_gw.cmd('python3 -u /client.py > /tmp/pm_gw.log 2>&1 &')
     greenhouse_gw.cmd('python3 -u /client.py > /tmp/gr_gw.log 2>&1 &')
     farming_gw.cmd('python3 -u /client.py > /tmp/far_gw.log 2>&1 &')
+    smart_building_gw.cmd('python3 -u /client.py > /tmp/sb_gw.log 2>&1 &')
     
     v_camera.cmd('python3 -u /ip_camera.py > /tmp/v_cam.log 2>&1 &')
     v_consumer.cmd('python3 -u /consume.py > /tmp/v_cons.log 2>&1 &')
