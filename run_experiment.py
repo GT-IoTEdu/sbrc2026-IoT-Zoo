@@ -153,25 +153,26 @@ def run():
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "SLEEP_TIME": "5"}, dcmd="/bin/bash")
     patient1 = net.addDocker('patient1', ip="10.0.0.7", dimage="myzoo/mhealth",
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "hospital/patients", "SUBJECT_ID": "1", "SPEED_FACTOR": "0.02"}, dcmd="/client.py")
-    lighting_gw = net.addDocker('sl_gw', ip="10.0.0.80", dimage="myzoo/smart_lighting", 
+    lighting_gw = net.addDocker('sl_gw', ip="10.0.0.8", dimage="myzoo/smart_lighting", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "city/lighting", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    envir_sensors_gw = net.addDocker('es_gw', ip="10.0.0.200", dimage="myzoo/environmental_sensors", 
+    envir_sensors_gw = net.addDocker('es_gw', ip="10.0.0.9", dimage="myzoo/environmental_sensors", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "school/environmental_sensors", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    aquaponics_gw = net.addDocker('aq_gw', ip="10.0.0.201", dimage="myzoo/aquaponics_fish_pond", 
+    aquaponics_gw = net.addDocker('aq_gw', ip="10.0.0.10", dimage="myzoo/aquaponics_fish_pond", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "aquaponics/fish_pond", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    elevator_gw = net.addDocker('el_gw', ip="10.0.0.202", dimage="myzoo/elevator_predictive_maintenance", 
+    elevator_gw = net.addDocker('el_gw', ip="10.0.0.11", dimage="myzoo/elevator_predictive_maintenance", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "building/elevator", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    pred_maint_gw = net.addDocker('pm_gw', ip="10.0.0.203", dimage="myzoo/predictive_maintenance", 
+    pred_maint_gw = net.addDocker('pm_gw', ip="10.0.0.12", dimage="myzoo/predictive_maintenance", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "elevator/traction/predictive_maintenance", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    traction_elevator_gw = net.addDocker('te_gw', ip="10.0.0.204", dimage="myzoo/traction_elevator", 
+    traction_elevator_gw = net.addDocker('te_gw', ip="10.0.0.13", dimage="myzoo/traction_elevator", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "elevator/traction/predictive_maintenance", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    greenhouse_gw =  net.addDocker('gr_gw', ip="10.0.0.205", dimage="myzoo/greenhouse_sensor", 
+    greenhouse_gw =  net.addDocker('gr_gw', ip="10.0.0.14", dimage="myzoo/greenhouse_sensor", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "greenhouse/env", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    farming_gw =  net.addDocker('far_gw', ip="10.0.0.206", dimage="myzoo/farming_sensor",
+    farming_gw =  net.addDocker('far_gw', ip="10.0.0.15", dimage="myzoo/farming_sensor",
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "farming_sensor/env", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    smart_building_gw = net.addDocker('sb_gw', ip="10.0.0.207", dimage="myzoo/smart_building_m5",
+    smart_building_gw = net.addDocker('sb_gw', ip="10.0.0.16", dimage="myzoo/smart_building_m5",
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "building/m5", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-
+    nurse_stress_gw = net.addDocker('ns_gw', ip="10.0.0.17", dimage="myzoo/nurse_stress", 
+        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "hospital/nurse_stress", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
 
     # Centralized creation of urban gateways
     gateways = []
@@ -199,7 +200,7 @@ def run():
 
     s1 = net.addSwitch('s1')
     
-    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw, elevator_gw, pred_maint_gw, pred_maint_gw, traction_elevator_gw, greenhouse_gw, farming_gw, smart_building_gw, v_server, v_camera, v_consumer] + gateways
+    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw, elevator_gw, pred_maint_gw, pred_maint_gw, traction_elevator_gw, greenhouse_gw, farming_gw, smart_building_gw, nurse_stress_gw, v_server, v_camera, v_consumer] + gateways
     
     for node in all_nodes:
         net.addLink(node, s1)
@@ -247,7 +248,7 @@ def run():
     greenhouse_gw.cmd('python3 -u /client.py > /tmp/gr_gw.log 2>&1 &')
     farming_gw.cmd('python3 -u /client.py > /tmp/far_gw.log 2>&1 &')
     smart_building_gw.cmd('python3 -u /client.py > /tmp/sb_gw.log 2>&1 &')
-    
+    nurse_stress_gw.cmd('python3 -u /client.py > /tmp/ns_gw.log 2>&1 &')
     v_camera.cmd('python3 -u /ip_camera.py > /tmp/v_cam.log 2>&1 &')
     v_consumer.cmd('python3 -u /consume.py > /tmp/v_cons.log 2>&1 &')
     
