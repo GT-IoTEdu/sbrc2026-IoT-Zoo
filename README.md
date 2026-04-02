@@ -237,4 +237,4 @@ Este código foi desenvolvido pelo GT-IoTEdu e está licenciado sob os termos da
 Este software é fornecido “como está”, sem qualquer garantia, expressa ou implícita, incluindo, sem limitação, garantias de comercialização ou adequação a um propósito específico. A RNP e os autores não se responsabilizam por quaisquer danos ou prejuízos decorrentes do uso deste software.
 
 If you use it in your research, please cite:
-> Article submitted.
+> Quincozes, V., Kreutz, D., & Ereno Quincozes, S. (2026). IoT-Zoo Network Traffic (1.1.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.19389681.
