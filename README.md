@@ -16,7 +16,7 @@ This repository contains the implementation of a **reproducible IoT testbed** ba
 * `devices/certificates/`: (Generated during build) CA and TLS certificates.
 * `build_images.sh`: Main automation script for environment setup.
 * `run_experiment.py`: Python/Mininet orchestrator for topology and capture.
-* `convert_PCAP_to_csv/`: Tools to transform raw traffic (PCAP) into enriched ML-ready datasets (i.e., .csv with 16 features).
+* `convert_PCAP_to_csv/`: Tools to transform raw traffic (PCAP) into enriched ML-ready datasets (i.e., .csv with 17 features).
 
 
 ## 📋 Prerequisites
@@ -127,7 +127,7 @@ Open the generated `.pcap` file in **Wireshark** to validate the traffic:
 
 ## 📊 Data Extraction (ML Readiness)
 
-Once you have generated a `.pcap` file, you can use the automated converter to generate an enriched CSV dataset with **16 features**, including deep packet inspection for MQTT and network layer metrics.
+Once you have generated a `.pcap` file, you can use the automated converter to generate an enriched CSV dataset with **17 features**, including deep packet inspection for MQTT and network layer metrics.
 
 ### Prerequisites for Extraction
 If you intend to generate CSV datasets, you must install Tshark and the required Python libraries on your host:
