@@ -24,7 +24,7 @@ python3 main.py --input capture.pcap --output dataset_final.csv
 
 ## Dataset Features
 
-The converter extracts 16 key features, providing a high-dimensional view for Machine Learning tasks:
+The converter extracts 17 key features, providing a high-dimensional view for Machine Learning tasks:
 
 | Feature | Source | Description |
 |---------|--------|-------------|
