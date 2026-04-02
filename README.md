@@ -11,6 +11,14 @@ This repository contains the implementation of a **reproducible IoT testbed** ba
 
 ---
 
+## Directory Structure
+* `devices/`: Source code and `Dockerfiles` for each implemented device.
+* `devices/certificates/`: (Generated during build) CA and TLS certificates.
+* `build_images.sh`: Main automation script for environment setup.
+* `run_experiment.py`: Python/Mininet orchestrator for topology and capture.
+* `convert_PCAP_to_csv/`: Tools to transform raw traffic (PCAP) into enriched ML-ready datasets (i.e., .csv with 16 features).
+
+
 ## 📋 Prerequisites
 
 To ensure faithful experiment reproduction, make sure you meet the following requirements:
@@ -104,6 +112,52 @@ mv /tmp/dataset_full.pcap ./meu_dataset.pcap
 
 ---
 
+## 🔍 Analyzing the Results
+
+Open the generated `.pcap` file in **Wireshark** to validate the traffic:
+
+1.  **MQTT Filter (`tcp.port == 1883`):**
+    * Observe the diversity of topics: `hospital/patients`, `vibration/cooler`, etc.
+    * Note the different payload formats (JSON, Binary, XML).
+
+2.  **Video Filter (`udp` ou `rtsp`):**
+    * Verify the continuous flow of UDP packets between the Camera (`.21`) and the Server (`.20`).
+
+---
+
+## 📊 Data Extraction (ML Readiness)
+
+Once you have generated a `.pcap` file, you can use the automated converter to generate an enriched CSV dataset with **16 features**, including deep packet inspection for MQTT and network layer metrics.
+
+### Prerequisites for Extraction
+If you intend to generate CSV datasets, you must install Tshark and the required Python libraries on your host:
+
+```bash
+# Install Tshark (Wireshark CLI)
+sudo apt-get update && sudo apt-get install -y tshark
+
+# Install extraction dependencies
+pip3 install pandas scapy
+```
+
+### Automated Conversion
+Navigate to the converter directory and run the orchestrator:
+
+```bash
+cd convert_PCAP_to_csv/
+python3 main.py --input ../meu_dataset.pcap --output final_zoo_dataset.csv
+```
+
+### Automated Conversion
+The resulting dataset includes:
+*  Network Metrics: IP TTL, TCP Sequence numbers, and TCP Flags.
+*  IoT Context: Full MQTT dissection (Topic, Message Type, QoS, and Payload Length).
+*  Protocol Diversity: Identification of RTSP, DNS, NTP, and MQTT across all 43 device profiles.
+
+* 📁 For more details on the extraction process and feature definitions, see the Converter README.
+
+---
+
 ## 🏛️ Scenario Architecture (IoT Zoo)
 
 The environment simulates a heterogeneous network where distinct IoT domains coexist, ranging from legacy industrial sensors to high-frequency urban monitoring systems using real-world datasets.
@@ -155,29 +209,6 @@ The experiment uses a star topology managed by Mininet, where all devices commun
 
 ---
 
-## 🔍 Analyzing the Results
-
-Open the generated `.pcap` file in **Wireshark** to validate the traffic:
-
-1.  **MQTT Filter (`tcp.port == 1883`):**
-    * Observe the diversity of topics: `hospital/patients`, `vibration/cooler`, etc.
-    * Note the different payload formats (JSON, Binary, XML).
-
-2.  **Video Filter (`udp` ou `rtsp`):**
-    * Verify the continuous flow of UDP packets between the Camera (`.21`) and the Server (`.20`).
-
----
-
-## 🛠️ Implementation Details
-
-### Estrutura de Diretórios
-* `devices/`: Source code and `Dockerfiles` for each sensor.
-* `devices/certificates/`: (Generated during build) CA and TLS certificates.
-* `build_images.sh`: Main automation script.
-* `run_experiment.py`: Python/Mininet orchestrator.
-
----
-
 ## ❓ Common Troubleshooting
 
 <details>
@@ -195,9 +226,15 @@ Open the generated `.pcap` file in **Wireshark** to validate the traffic:
     ```
 </details>
 
----
+
 
 ## 📜 License and Citation
 
-This project is open-source. If you use it in your research, please cite:
+***Copyright (c) [2026] [RNP – REDE NACIONAL DE ENSINO E PESQUISA]***
+
+Este código foi desenvolvido pelo GT-IoTEdu e está licenciado sob os termos da Licença BSD. Ele pode ser livremente utilizado, modificado e distribuído, inclusive para fins comerciais, desde que este aviso de direitos autorais seja mantido.
+
+Este software é fornecido “como está”, sem qualquer garantia, expressa ou implícita, incluindo, sem limitação, garantias de comercialização ou adequação a um propósito específico. A RNP e os autores não se responsabilizam por quaisquer danos ou prejuízos decorrentes do uso deste software.
+
+If you use it in your research, please cite:
 > Article submitted.
