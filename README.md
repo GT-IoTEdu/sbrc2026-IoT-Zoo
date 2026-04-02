@@ -154,7 +154,7 @@ The resulting dataset includes:
 *  IoT Context: Full MQTT dissection (Topic, Message Type, QoS, and Payload Length).
 *  Protocol Diversity: Identification of RTSP, DNS, NTP, and MQTT across all 43 device profiles.
 
-* 📁 For more details on the extraction process and feature definitions, see the Converter README.
+* 📁 For more details on the extraction process and feature definitions, see the [Converter README](convert_pcap_to_csv/README.md).
 
 ---
 
