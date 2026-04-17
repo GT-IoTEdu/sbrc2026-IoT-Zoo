@@ -11,6 +11,12 @@ This repository contains the implementation of a **reproducible IoT testbed** ba
 
 ---
 
+## Considered Badges
+- Available Artifacts (Badge D)
+- Functional Artifacts (Badge F)
+- Sustainable Artifacts (Badge S)
+- Reproducible Experiments (Badge R)
+
 ## Directory Structure
 * `devices/`: Source code and `Dockerfiles` for each implemented device.
 * `devices/certificates/`: (Generated during build) CA and TLS certificates.
