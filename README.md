@@ -35,6 +35,14 @@ To ensure faithful experiment reproduction, make sure you meet the following req
 * 🔑 **Permissions:** `root` access (`sudo`) is required for Mininet to manage network interfaces.
 ---
 
+## Security Concerns
+
+This artifact does not execute attacks against external hosts, real IoT devices, production networks, or cloud services. All generated traffic is confined to the local Mininet/Containernet emulated topology.
+
+The main security consideration is that the experiment requires `sudo` privileges because Mininet/Containernet needs to create virtual interfaces, namespaces, links, Docker containers, and packet capture processes. For this reason, we recommend running the artifact inside a dedicated virtual machine.
+
+---
+
 ## 🚀 Installation Guide (Step by Step)
 
 ### 1. System Preparation (Containernet)
