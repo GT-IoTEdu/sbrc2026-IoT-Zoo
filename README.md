@@ -5,7 +5,7 @@
 ![Platform](https://img.shields.io/badge/platform-linux--sudo-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-This repository contains the implementation of a **reproducible IoT testbed** based on **Mininet-WiFi / Containernet**. The project simulates an "IoT Zoo" featuring heterogeneous devices, from medical and industrial sensors to surveillance cameras and weather stations, all running simultaneously in Docker containers.
+This repository contains the implementation of a **reproducible IoT testbed** based on **Mininet / Containernet**. The project simulates an "IoT Zoo" featuring heterogeneous devices, from medical and industrial sensors to surveillance cameras and weather stations, all running simultaneously in Docker containers.
 
 > **Goal:** Generate realistic network traffic and labeled datasets for training and validating **Intrusion Detection Systems (IDS)** in IoT/IIoT scenarios.
 
@@ -101,19 +101,26 @@ sudo python3 run_experiment.py --time <seconds> --output <path_to_file.pcap>
 
 ⚠️ **Note:** To avoid system permission blocks (AppArmor) when writing capture files, we recommend saving the output in `/tmp`.
 
-**Quick Test (120 seconds)::**
+**Quick Test — generate the PCAP file (120 seconds):**
 ```bash
-sudo python3 run_experiment.py --time 120 --output /tmp/capture_test.pcap
+sudo python3 run_experiment.py --time 120 --output /tmp/iot_zoo_test.pcap
 ```
 
-**Full Dataset Generation (10 minutes):**
+**After the experiment finishes, move the generated file to the project directory:**
 ```bash
-sudo python3 run_experiment.py --time 600 --output /tmp/dataset_full.pcap
+sudo mv /tmp/iot_zoo_test.pcap ./iot_zoo_test.pcap
+sudo chown $USER:$USER ./iot_zoo_test.pcap
 ```
 
-**Afterwards, move the generated file:**
+**Full Dataset — generate the PCAP file (10 minutes):**
 ```bash
-mv /tmp/dataset_full.pcap ./meu_dataset.pcap
+sudo python3 run_experiment.py --time 600 --output /tmp/iot_zoo_full.pcap
+```
+
+**After the experiment finishes, move the generated file to the project directory:**
+```bash
+sudo mv /tmp/iot_zoo_full.pcap ./iot_zoo_full.pcap
+sudo chown $USER:$USER ./iot_zoo_full.pcap
 ```
 
 ---
