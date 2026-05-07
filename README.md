@@ -23,6 +23,8 @@ This repository contains the implementation of a **reproducible IoT testbed** ba
 * `build_images.sh`: Main automation script for environment setup.
 * `run_experiment.py`: Python/Mininet orchestrator for topology and capture.
 * `convert_PCAP_to_csv/`: Tools to transform raw traffic (PCAP) into enriched ML-ready datasets (i.e., .csv with 17 features).
+* `ARCHITECTURE.md`: Provides an overview of the IoT-Zoo architecture, describing how the build, orchestration, emulation and data collection layers interact.
+* `DEVICE_PROFILES.md`: Explains how device profiles are structured, how they are configured through environment variables, how they interact with `run_experiment.py`, and how new profiles can be integrated into the testbed.
 
 
 ## 📋 Prerequisites
