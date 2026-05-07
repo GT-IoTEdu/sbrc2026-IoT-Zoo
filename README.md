@@ -33,51 +33,99 @@ To ensure faithful experiment reproduction, make sure you meet the following req
 * 💻 **Recommended Hardware:** Minimum 8GB RAM and 2 vCPUs
 * 💾 **Storage:** At least 50 GB of available disk space (SSD recommended).
 * 🔑 **Permissions:** `root` access (`sudo`) is required for Mininet to manage network interfaces.
+* 🐳 **Docker:** Installed automatically by the Containernet installation script when needed.
 ---
 
 ## Security Concerns
 
 This artifact does not execute attacks against external hosts, real IoT devices, production networks, or cloud services. All generated traffic is confined to the local Mininet/Containernet emulated topology.
 
-The main security consideration is that the experiment requires `sudo` privileges because Mininet/Containernet needs to create virtual interfaces, namespaces, links, Docker containers, and packet capture processes. For this reason, we recommend running the artifact inside a dedicated virtual machine.
+The main security consideration is that the experiment requires `sudo` privileges because Mininet/Containernet needs to create virtual interfaces, namespaces, links, Docker containers and packet capture processes. For this reason, we recommend running the artifact inside a dedicated virtual machine.
 
 ---
 
 ## 🚀 Installation Guide (Step by Step)
 
-### 1. System Preparation (Containernet)
+### 1. System Preparation
 
-This project uses Containernet, an extension of Mininet that allows Docker containers to be used as hosts in the topology.
-
+Update the system and install the required base packages:
 ```bash
-# 1. Update the system and install essential tools
 sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install -y git ansible python3-pip
-
-# 2. Install Containernet (via Ansible - Recommended Method)
-git clone https://github.com/containernet/containernet.git
-cd containernet/ansible
-sudo ansible-playbook -i "localhost," -c local install.yml
-cd ..
-sudo make install
-
-# 3. Install Python dependencies for the orchestrator
+sudo apt-get install -y git ansible python3-pip iptables python3-iptables
+```
+Install Python dependencies used by the experiment orchestrator and data processing tools:
+```bash
 sudo pip3 install docker pandas scikit-learn
 ```
 
-### 2. IoT-Zoo Project Setup
+### 2. Install Containernet
+This project uses Containernet, an extension of Mininet that allows Docker containers to be used as hosts in the emulated topology.
+Before installing, remove possible leftovers from previous Mininet/Containernet installations:
+```bash
+cd ~
+sudo rm -rf containernet
+sudo rm -rf openflow
+sudo rm -rf oflops
+sudo rm -rf pox
+sudo rm -rf openvswitch
+```
+Clone and install Containernet:
+```bash
+cd ~
+git clone https://github.com/containernet/containernet.git
+cd containernet/ansible
+sudo ansible-playbook -i "localhost," -c local install.yml
+```
+The Ansible installation should finish with `failed=0`.
+Then run:
+```bash
+cd ~/containernet
+sudo make install
+```
+---
+### 3. Validate Containernet / Mininet
+First, test whether Python can import Mininet from inside the Containernet directory:
+```bash
+cd ~/containernet
+python3 -c "import mininet; print('mininet OK')"
+sudo python3 -c "from mininet.net import Containernet; print('Containernet OK')"
+```
+Expected output:
+```bash
+mininet OK
+Containernet OK
+```
+Then test the same import from the IoT-Zoo project directory after cloning the repository in the next step. If the module is not found outside `~/containernet`, use the `PYTHONPATH` execution form shown in the experiment section.
+
+---
+
+
+### 4. IoT-Zoo Project Setup
 
 Clone this repository to your local machine:
-
 ```bash
 cd ~
 git clone https://github.com/GT-IoTEdu/Testbed-Virtual-02.git
 cd Testbed-Virtual-02
 ```
+Check whether Containernet is available from the project directory:
+```bash
+sudo python3 -c "from mininet.net import Containernet; print('Containernet OK')"
+```
+If this command works, the experiment can be executed with `sudo python3`.
+If it does not work, use the `PYTHONPATH` form below, which explicitly informs Python where Containernet is located:
+```bash
+sudo PYTHONPATH=/home/$USER/containernet python3 -c "from mininet.net import Containernet; print('Containernet OK')"
+```
+Expected output:
+```bash
+Containernet OK
+```
 
-### 3. Environment Build
 
-There is no need to manually configure certificates or containers. The script build_images.sh automates the entire process:
+### 5. Environment Build
+
+There is no need to manually configure certificates or containers. The script `build_images.sh` automates the environment build:
 
 1.  Sets execution permissions.
 2.  Generates a simulated **PKI** (Public Key Infrastructure) for TLS.
@@ -99,10 +147,11 @@ sudo ./build_images.sh
 
 The script `run_experiment.py` is the main orchestrator. It brings up the topology, configures routing, and starts traffic capture.
 
-### Syntax
+### Syntax (Recommended Execution)
 
+To make the experiment independent from Python path differences across installations, use the following form:
 ```bash
-sudo python3 run_experiment.py --time <seconds> --output <path_to_file.pcap>
+sudo PYTHONPATH=/home/$USER/containernet python3 run_experiment.py --time <seconds> --output <path_to_file.pcap>
 ```
 
 ### Usage Examples (Recommended)
@@ -111,8 +160,15 @@ sudo python3 run_experiment.py --time <seconds> --output <path_to_file.pcap>
 
 **Quick Test — generate the PCAP file (120 seconds):**
 ```bash
-sudo python3 run_experiment.py --time 120 --output /tmp/iot_zoo_test.pcap
+cd ~/Testbed-Virtual-02
+sudo PYTHONPATH=/home/$USER/containernet python3 run_experiment.py --time 120 --output /tmp/iot_zoo_test.pcap
 ```
+After the experiment finishes, move the generated file to the project directory:
+```bash
+sudo mv /tmp/iot_zoo_test.pcap ./iot_zoo_test.pcap
+sudo chown $USER:$USER ./iot_zoo_test.pcap
+```
+
 
 **After the experiment finishes, move the generated file to the project directory:**
 ```bash
@@ -122,13 +178,27 @@ sudo chown $USER:$USER ./iot_zoo_test.pcap
 
 **Full Dataset — generate the PCAP file (10 minutes):**
 ```bash
-sudo python3 run_experiment.py --time 600 --output /tmp/iot_zoo_full.pcap
+cd ~/Testbed-Virtual-02
+sudo PYTHONPATH=/home/$USER/containernet python3 run_experiment.py --time 600 --output /tmp/iot_zoo_full.pcap
 ```
-
-**After the experiment finishes, move the generated file to the project directory:**
+After the experiment finishes, move the generated file to the project directory:
 ```bash
 sudo mv /tmp/iot_zoo_full.pcap ./iot_zoo_full.pcap
 sudo chown $USER:$USER ./iot_zoo_full.pcap
+```
+> ⚠️ **Note:** Saving the `.pcap` file in `/tmp` is recommended to avoid permission blocks when packet capture tools write files directly inside the user's home directory.
+---
+
+
+**Optional: Create a Shortcut Command**
+To avoid typing the full `PYTHONPATH` command every time, create an alias:
+```bash
+echo 'alias run-iot-zoo="cd ~/Testbed-Virtual-02 && sudo PYTHONPATH=/home/$USER/containernet python3 run_experiment.py"' >> ~/.bashrc
+source ~/.bashrc
+```
+Then run:
+```bash
+run-iot-zoo --time 120 --output /tmp/iot_zoo_test.pcap
 ```
 
 ---
