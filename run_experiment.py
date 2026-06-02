@@ -162,7 +162,7 @@ def run():
     elevator_gw = net.addDocker('el_gw', ip="10.0.0.11", dimage="myzoo/elevator_predictive_maintenance", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "building/elevator", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
     pred_maint_gw = net.addDocker('pm_gw', ip="10.0.0.12", dimage="myzoo/predictive_maintenance", 
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "elevator/traction/predictive_maintenance", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
+        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "industrial/predictive_maintenance", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
     traction_elevator_gw = net.addDocker('te_gw', ip="10.0.0.13", dimage="myzoo/traction_elevator", 
         environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "elevator/traction/predictive_maintenance", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
     greenhouse_gw =  net.addDocker('gr_gw', ip="10.0.0.14", dimage="myzoo/greenhouse_sensor", 
@@ -200,7 +200,7 @@ def run():
 
     s1 = net.addSwitch('s1')
     
-    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw, elevator_gw, pred_maint_gw, pred_maint_gw, traction_elevator_gw, greenhouse_gw, farming_gw, smart_building_gw, nurse_stress_gw, v_server, v_camera, v_consumer] + gateways
+    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw, elevator_gw, pred_maint_gw, traction_elevator_gw, greenhouse_gw, farming_gw, smart_building_gw, nurse_stress_gw, v_server, v_camera, v_consumer] + gateways
     
     for node in all_nodes:
         net.addLink(node, s1)
@@ -240,7 +240,6 @@ def run():
     patient1.cmd('python3 -u /client.py > /dev/null 2>&1 &')
     lighting_gw.cmd('python3 -u /client.py > /tmp/sl_gw.log 2>&1 &')
     envir_sensors_gw.cmd('python3 -u /client.py > /tmp/es_gw.log 2>&1 &')
-    greenhouse_gw.cmd('python3 -u /client.py > /tmp/gr_gw.log 2>&1 &')
     aquaponics_gw.cmd('python3 -u /client.py > /tmp/aq_gw.log 2>&1 &')
     elevator_gw.cmd('python3 -u /client.py > /tmp/el_gw.log 2>&1 &')
     traction_elevator_gw.cmd('python3 -u /client.py > /tmp/te_gw.log 2>&1 &')
