@@ -1,8 +1,7 @@
 # 🛡️ IoT-Zoo
 
-![Validation](https://img.shields.io/badge/validation-Ubuntu%2020.04%20LTS-lightgrey)![Python](https://img.shields.io/badge/python-3.8%2B-blue)
-![Platform](https://img.shields.io/badge/platform-Ubuntu%2020.04%20LTS-orange)
-![Docker](https://img.shields.io/badge/docker-required-blue)
+![Platform](https://img.shields.io/badge/platform-Ubuntu%2020.04%20%7C%2022.04-orange) ![Docker](https://img.shields.io/badge/docker-required-blue)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![Containernet](https://img.shields.io/badge/containernet-required-purple)
 ![License](https://img.shields.io/badge/license-see%20LICENSE-green)
 
@@ -20,7 +19,7 @@ The project is designed to support reproducible experiments with heterogeneous I
 - Containernet/Mininet-based emulation with a central virtual switch.
 - MQTT telemetry and RTSP/video traffic generation.
 - PCAP capture at the virtual switch level.
-- Minimal demo mode generated from compressed datasets already included in the repository.
+- Basic demo mode generated from compressed datasets already included in the repository.
 - Full topology mode using all available profiles and datasets.
 - Scripts for installation, environment checking, image building, demo execution, and full execution.
 
@@ -40,11 +39,10 @@ Recommended resources:
 
 | Scenario | vCPU | RAM | Disk |
 |---|---:|---:|---:|
-| Minimal demo | 2+ | 4 GB+ | 20 GB+ |
+| Basic demo | 2+ | 4 GB+ | 20 GB+ |
 | Full topology | 4+ | 8 GB+ | 40–50 GB+ |
 
-Other Linux distributions may work, but they are not officially supported. If you use another operating system, you must provide compatible versions of:
-
+If you use another operating system, you must provide compatible versions of:
 - Docker Engine;
 - Open vSwitch;
 - Containernet/Mininet;
@@ -56,7 +54,7 @@ Other Linux distributions may work, but they are not officially supported. If yo
 
 See [`docs/SYSTEM_REQUIREMENTS.md`](docs/SYSTEM_REQUIREMENTS.md) for details.
 
-## Quick start on a fresh Ubuntu Server 20.04 LTS machine
+## Quick start on Ubuntu Server 20.04/22.04 LTS
 
 Use this path on a clean VM or machine.
 
@@ -70,43 +68,27 @@ chmod +x build_images.sh
 ./scripts/install_ubuntu.sh
 ```
 
-After installation, close and reopen the terminal if the script adds your user to the Docker group. Then run:
+After installation, reboot the VM (```sudo reboot```) if the script adds your user to the Docker group. Then run:
 
 ```bash
 ./scripts/check_environment.sh
-./scripts/prepare_demo_data.sh --duration 120 --clean
-./scripts/build_images.sh --demo
-./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_demo.pcap
 ```
 
+## Basic demo: 2 devices
+Use the basic demo as the first validation step. It runs a small scenario with the MQTT broker and two device profiles, using CSV samples generated from the compressed `.csv.xz` datasets already stored in the repository. The original datasets are not modified.
+```bash
+./scripts/prepare_demo_data.sh --duration 120 --clean
+./scripts/build_images.sh --demo
+./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_basic_demo.pcap
+```
 Check the generated capture:
 
 ```bash
-ls -lh /tmp/iot_zoo_demo.pcap
+ls -lh /tmp/iot_zoo_basic_demo.pcap
+tcpdump -r /tmp/iot_zoo_basic_demo.pcap -n port 1883 -c 10
 ```
 
-The minimal demo is the recommended first validation step. It generates small CSV samples from the compressed `.csv.xz` datasets already stored in the repository. The original datasets are not modified.
 
-## Running the minimal demo again
-
-After the environment is installed, demo data is prepared, and demo images are built, use:
-
-```bash
-./scripts/check_environment.sh
-./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_demo.pcap
-```
-
-Regenerate demo data only when you want a fresh sample or when the source datasets change:
-
-```bash
-./scripts/prepare_demo_data.sh --duration 120 --clean
-```
-
-Rebuild demo images only when Dockerfiles or device code change:
-
-```bash
-./scripts/build_images.sh --demo
-```
 
 ## Running the full topology
 
@@ -118,22 +100,20 @@ The full topology uses all available device profiles and the datasets stored und
 ./scripts/run_full.sh --time 600 --output /tmp/iot_zoo_full.pcap
 ```
 
-`run_full.sh` handles the required elevated privileges and Containernet path internally. You should not need to call `sudo PYTHONPATH=...` directly during normal use.
-
 ## Repository structure
 
 ```text
 .
 ├── README.md
 ├── run_experiment.py              # Full topology orchestrator
-├── demo_experiment.py             # Minimal demo topology orchestrator
+├── demo_experiment.py             # Basic demo topology orchestrator
 ├── build_images.sh                # Compatibility wrapper for scripts/build_images.sh
 ├── architecture.png               # Architecture figure
 ├── ARCHITECTURE.md                # Architecture overview
 ├── DEVICE_PROFILES.md             # Device profile documentation
 ├── scripts/
 │   ├── check_environment.sh       # Diagnose the host environment
-│   ├── install_ubuntu.sh    # Install dependencies on Ubuntu Server
+│   ├── install_ubuntu.sh          # Install dependencies on Ubuntu Server
 │   ├── prepare_demo_data.sh       # Generate small demo data from .csv.xz files
 │   ├── prepare_demo_data.py       # Demo data sampler
 │   ├── build_images.sh            # Build demo or full Docker images
@@ -158,9 +138,9 @@ The full topology uses all available device profiles and the datasets stored und
 | `scripts/install_ubuntu.sh` | Installs system and Python dependencies on Ubuntu Server. |
 | `scripts/check_environment.sh` | Checks OS, Docker, Open vSwitch, Python packages, Containernet, project paths, datasets, and demo images. |
 | `scripts/prepare_demo_data.sh` | Generates a small demo dataset from the full `.csv.xz` files. |
-| `scripts/build_images.sh --demo` | Builds only the images needed by the minimal demo. |
+| `scripts/build_images.sh --demo` | Builds only the images needed by the basic demo. |
 | `scripts/build_images.sh --full` | Builds all available device images. |
-| `scripts/run_demo.sh` | Runs the minimal demo scenario and writes a PCAP file. |
+| `scripts/run_demo.sh` | Runs the basic demo scenario and writes a PCAP file. |
 | `scripts/run_full.sh` | Runs the full IoT-Zoo topology and writes a PCAP file. |
 
 ## Dataset organization
@@ -196,7 +176,7 @@ devices/urban_observatory/
 └── urban_sensor.py
 ```
 
-The minimal demo does not duplicate the full datasets. Instead, it creates small samples under `sample_data/urban_observatory/` using:
+The basic demo does not duplicate the full datasets. Instead, it generates small CSV samples under `sample_data/urban_observatory/` using:
 
 ```bash
 ./scripts/prepare_demo_data.sh --duration 120 --clean
@@ -220,14 +200,14 @@ After generating a PCAP file, use the converter in `convert_pcap_to_csv/`:
 
 ```bash
 cd convert_pcap_to_csv/
-python3 main.py --input /tmp/iot_zoo_demo.pcap --output iot_zoo_demo.csv
+python3 main.py --input /tmp/iot_zoo_basic_demo.pcap --output iot_zoo_basic_demo.csv
 ```
 
-Install `tshark` and the required Python dependencies before using the converter:
+If you used `scripts/install_ubuntu.sh`, these dependencies are already installed. Otherwise, install them manually:
 
 ```bash
 sudo apt-get install -y tshark
-pip3 install pandas scapy
+pip3 install pandas scapy scikit-learn
 ```
 
 See [`convert_pcap_to_csv/README.md`](convert_pcap_to_csv/README.md) for feature definitions and extraction details.

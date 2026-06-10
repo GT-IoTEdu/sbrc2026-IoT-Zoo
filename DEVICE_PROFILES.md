@@ -65,25 +65,25 @@ A device profile is a self-contained unit responsible for generating realistic a
 
 Each profile usually defines:
 
-1. **Execution environment**  
+1. **Execution environment**
    Defined in the `Dockerfile`.
 
-2. **Data source**  
+2. **Data source**
    A dataset file, video file, compressed dataset or synthetic data source.
 
-3. **Runtime behavior**  
+3. **Runtime behavior**
    Implemented in a Python script such as `client.py`.
 
-4. **Protocol behavior**  
+4. **Protocol behavior**
    Usually MQTT for telemetry or RTSP/UDP for video streams.
 
-5. **Payload format**  
+5. **Payload format**
    JSON, XML, binary, plain text or protocol-specific payloads.
 
-6. **Timing behavior**  
+6. **Timing behavior**
    Transmission interval, jitter, active/inactive periods or dataset-driven replay speed.
 
-7. **Network configuration**  
+7. **Network configuration**
    IP address, MQTT topic, broker address and optional service-specific parameters.
 
 ---
@@ -96,12 +96,12 @@ The `Dockerfile` defines the container environment for the profile.
 
 It usually performs the following tasks:
 
-- selects a base image;
-- installs Linux packages;
-- installs Python dependencies;
-- copies datasets into the container;
-- copies runtime scripts into the container;
-- defines the entrypoint or default command.
+* selects a base image;
+* installs Linux packages;
+* installs Python dependencies;
+* copies datasets into the container;
+* copies runtime scripts into the container;
+* defines the entrypoint or default command.
 
 Example structure:
 
@@ -134,19 +134,19 @@ The runtime script defines how the device behaves during the experiment.
 
 For MQTT-based profiles, the runtime script usually:
 
-- reads a dataset or generates telemetry;
-- transforms each record into an application payload;
-- connects to the MQTT broker;
-- publishes messages to a specific topic;
-- controls the transmission interval;
-- handles termination signals.
+* reads a dataset or generates telemetry;
+* transforms each record into an application payload;
+* connects to the MQTT broker;
+* publishes messages to a specific topic;
+* controls the transmission interval;
+* handles termination signals.
 
 For video profiles, the runtime script may:
 
-- start an RTSP stream;
-- transmit video data;
-- consume a video stream;
-- write service logs.
+* start an RTSP stream;
+* transmit video data;
+* consume a video stream;
+* write service logs.
 
 ---
 
@@ -174,33 +174,33 @@ Most profiles receive configuration from `run_experiment.py` through Docker envi
 
 Common variables include:
 
-| Variable | Description |
-|---|---|
-| `MQTT_BROKER_ADDR` | IP address of the MQTT broker used by the profile. |
-| `MQTT_TOPIC_PUB` | MQTT topic used for publishing telemetry. |
-| `MQTT_QOS` | MQTT quality of service level. |
-| `SLEEP_TIME` | Average interval between transmissions. |
-| `SLEEP_TIME_SD` | Standard deviation applied to the transmission interval. |
-| `ACTIVE_TIME` | Duration of the active transmission period. |
-| `INACTIVE_TIME` | Duration of inactive/sleep period, when supported. |
-| `TLS` | Enables TLS communication, when supported. |
-| `TLS_INSECURE` | Disables hostname verification when TLS is enabled. |
+| Variable           | Description                                              |
+| ------------------ | -------------------------------------------------------- |
+| `MQTT_BROKER_ADDR` | IP address of the MQTT broker used by the profile.       |
+| `MQTT_TOPIC_PUB`   | MQTT topic used for publishing telemetry.                |
+| `MQTT_QOS`         | MQTT quality of service level.                           |
+| `SLEEP_TIME`       | Average interval between transmissions.                  |
+| `SLEEP_TIME_SD`    | Standard deviation applied to the transmission interval. |
+| `ACTIVE_TIME`      | Duration of the active transmission period.              |
+| `INACTIVE_TIME`    | Duration of inactive/sleep period, when supported.       |
+| `TLS`              | Enables TLS communication, when supported.               |
+| `TLS_INSECURE`     | Disables hostname verification when TLS is enabled.      |
 
 Profile-specific variables may also be used. For example, urban observatory profiles may use variables such as:
 
-| Variable | Description |
-|---|---|
+| Variable          | Description                                                 |
+| ----------------- | ----------------------------------------------------------- |
 | `TARGET_VARIABLE` | Selects which variable from the dataset should be replayed. |
-| `TIME_SCALE` | Controls the replay speed of dataset-driven telemetry. |
+| `TIME_SCALE`      | Controls the replay speed of dataset-driven telemetry.      |
 
 Video profiles may use variables such as:
 
-| Variable | Description |
-|---|---|
-| `STREAM_SERVER_ADDR` | IP address of the RTSP server. |
-| `STREAM_SERVER_PORT` | RTSP server port. |
-| `STREAM_NAME` | Name of the video stream. |
-| `VIDEO_FILE` | Video file used by the camera profile. |
+| Variable             | Description                            |
+| -------------------- | -------------------------------------- |
+| `STREAM_SERVER_ADDR` | IP address of the RTSP server.         |
+| `STREAM_SERVER_PORT` | RTSP server port.                      |
+| `STREAM_NAME`        | Name of the video stream.              |
+| `VIDEO_FILE`         | Video file used by the camera profile. |
 
 ---
 
@@ -222,27 +222,27 @@ devices/air_quality/
 
 The Dockerfile prepares the runtime environment by:
 
-- using Ubuntu as base image;
-- installing networking tools;
-- installing Python 3 and `pip`;
-- installing the MQTT client dependency;
-- copying the compressed air quality dataset into the container;
-- copying the Python client;
-- setting the client as the entrypoint.
+* using Ubuntu as base image;
+* installing networking tools;
+* installing Python 3 and `pip`;
+* installing the MQTT client dependency;
+* copying the compressed air quality dataset into the container;
+* copying the Python client;
+* setting the client as the entrypoint.
 
 ### 5.2 Runtime behavior
 
 The runtime script:
 
-- opens the compressed dataset;
-- reads the dataset line by line;
-- loops back to the beginning when the end of the file is reached;
-- converts each row into a structured payload;
-- builds an XML representation of the telemetry record;
-- publishes the payload to the MQTT broker;
-- periodically pings the broker;
-- optionally polls an NTP server;
-- controls active and inactive telemetry periods.
+* opens the compressed dataset;
+* reads the dataset line by line;
+* loops back to the beginning when the end of the file is reached;
+* converts each row into a structured payload;
+* builds an XML representation of the telemetry record;
+* publishes the payload to the MQTT broker;
+* periodically pings the broker;
+* optionally polls an NTP server;
+* controls active and inactive telemetry periods.
 
 This profile demonstrates the general IoT-Zoo pattern: a dataset is transformed into application-level traffic and transmitted through a real protocol.
 
@@ -287,13 +287,13 @@ Some directories under `devices/` are not IoT sensors, but infrastructure servic
 
 Examples:
 
-| Directory | Role |
-|---|---|
-| `mqtt_broker/` | Provides the Mosquitto MQTT broker. |
-| `stream_server/` | Provides the RTSP/video streaming server. |
-| `stream_consumer/` | Consumes the RTSP stream. |
-| `ip_camera/` | Produces the video stream. |
-| `certificates/` | Stores or generates TLS/PKI artifacts used by supported profiles. |
+| Directory          | Role                                                              |
+| ------------------ | ----------------------------------------------------------------- |
+| `mqtt_broker/`     | Provides the Mosquitto MQTT broker.                               |
+| `stream_server/`   | Provides the RTSP/video streaming server.                         |
+| `stream_consumer/` | Consumes the RTSP stream.                                         |
+| `ip_camera/`       | Produces the video stream.                                        |
+| `certificates/`    | Stores or generates TLS/PKI artifacts used by supported profiles. |
 
 These profiles are part of the emulation environment and support communication among IoT devices.
 
@@ -305,10 +305,10 @@ The `urban_observatory` profile is used to instantiate multiple smart-city gatew
 
 Instead of creating a separate Docker image for each urban variable, `run_experiment.py` defines a centralized list of devices with:
 
-- container name;
-- IP address;
-- target variable;
-- MQTT topic.
+* container name;
+* IP address;
+* target variable;
+* MQTT topic.
 
 Example pattern:
 
@@ -413,7 +413,7 @@ SLEEP_TIME_SD
 
 ---
 
-### Step 4: Add the image to `build_images.sh`
+### Step 4: Add the image to `scripts/build_images.sh`
 
 Add a Docker build command for the new profile:
 
@@ -459,7 +459,7 @@ my_new_sensor.cmd('python3 -u /client.py > /tmp/my_sensor.log 2>&1 &')
 ### Step 6: Rebuild the images
 
 ```bash
-sudo ./build_images.sh
+./scripts/build_images.sh --full
 ```
 
 ---
@@ -467,7 +467,7 @@ sudo ./build_images.sh
 ### Step 7: Run the experiment
 
 ```bash
-sudo PYTHONPATH=/home/$USER/containernet python3 run_experiment.py --time 120 --output /tmp/iot_zoo_test.pcap
+./scripts/run_full.sh --time 120 --output /tmp/iot_zoo_test.pcap
 ```
 
 ---
@@ -486,26 +486,32 @@ Check whether the new MQTT topic appears:
 my/sensor/topic
 ```
 
+You can also inspect MQTT traffic from the terminal:
+
+```bash
+tcpdump -r /tmp/iot_zoo_test.pcap -n port 1883 -c 10
+```
+
 ---
 
 ## 10. Profile development checklist
 
 Before submitting or merging a new profile, check:
 
-- [ ] The profile has its own directory under `devices/`.
-- [ ] The profile includes a `Dockerfile`.
-- [ ] The profile includes a runtime script.
-- [ ] The dataset source is included or clearly documented.
-- [ ] Required Python packages are installed in the Dockerfile.
-- [ ] MQTT topic or protocol endpoint is defined.
-- [ ] Required environment variables are documented.
-- [ ] The Docker image is added to `build_images.sh`.
-- [ ] The container is added to `run_experiment.py`.
-- [ ] The container is connected to the virtual switch.
-- [ ] The client is started during the experiment.
-- [ ] Logs are redirected to `/tmp/*.log` or another documented location.
-- [ ] The generated traffic appears in the PCAP file.
-- [ ] The profile does not depend on external services unless explicitly documented.
+* [ ] The profile has its own directory under `devices/`.
+* [ ] The profile includes a `Dockerfile`.
+* [ ] The profile includes a runtime script.
+* [ ] The dataset source is included or clearly documented.
+* [ ] Required Python packages are installed in the Dockerfile.
+* [ ] MQTT topic or protocol endpoint is defined.
+* [ ] Required environment variables are documented.
+* [ ] The Docker image is added to `scripts/build_images.sh`.
+* [ ] The container is added to `run_experiment.py`.
+* [ ] The container is connected to the virtual switch.
+* [ ] The client is started during the experiment.
+* [ ] Logs are redirected to `/tmp/*.log` or another documented location.
+* [ ] The generated traffic appears in the PCAP file.
+* [ ] The profile does not depend on external services unless explicitly documented.
 
 ---
 
@@ -513,13 +519,13 @@ Before submitting or merging a new profile, check:
 
 A correctly configured profile should produce one or more of the following outputs:
 
-| Output | Description |
-|---|---|
-| MQTT packets | Telemetry messages captured in the experiment PCAP. |
-| RTSP/UDP packets | Video traffic captured in the experiment PCAP. |
-| Runtime logs | Execution logs stored inside the container, commonly under `/tmp/`. |
-| PCAP traffic | Network trace generated by `tcpdump` at the switch level. |
-| CSV dataset | Optional output generated later from the PCAP converter. |
+| Output           | Description                                                         |
+| ---------------- | ------------------------------------------------------------------- |
+| MQTT packets     | Telemetry messages captured in the experiment PCAP.                 |
+| RTSP/UDP packets | Video traffic captured in the experiment PCAP.                      |
+| Runtime logs     | Execution logs stored inside the container, commonly under `/tmp/`. |
+| PCAP traffic     | Network trace generated by `tcpdump` at the switch level.           |
+| CSV dataset      | Optional output generated later from the PCAP converter.            |
 
 ---
 
@@ -527,23 +533,23 @@ A correctly configured profile should produce one or more of the following outpu
 
 When creating new profiles, prefer:
 
-- dataset-driven behavior instead of fixed synthetic values;
-- clear topic naming;
-- configurable timing through environment variables;
-- small and reproducible Docker images;
-- explicit dependencies in the Dockerfile;
-- graceful termination when the experiment ends;
-- logs that help debug execution;
-- payload formats representative of real IoT systems.
+* dataset-driven behavior instead of fixed synthetic values;
+* clear topic naming;
+* configurable timing through environment variables;
+* small and reproducible Docker images;
+* explicit dependencies in the Dockerfile;
+* graceful termination when the experiment ends;
+* logs that help debug execution;
+* payload formats representative of real IoT systems.
 
 Avoid:
 
-- hardcoded external IP addresses;
-- dependencies on unavailable remote services;
-- very large files without documentation;
-- undocumented environment variables;
-- profile-specific changes that break existing devices;
-- modifying the MQTT broker or topology unless necessary.
+* hardcoded external IP addresses;
+* dependencies on unavailable remote services;
+* very large files without documentation;
+* undocumented environment variables;
+* profile-specific changes that break existing devices;
+* modifying the MQTT broker or topology unless necessary.
 
 ---
 

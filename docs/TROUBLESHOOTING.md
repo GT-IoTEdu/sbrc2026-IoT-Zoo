@@ -10,7 +10,7 @@ Resolve `[FAIL]` items first. `[WARN]` items may be acceptable depending on the 
 
 ## Unsupported operating system
 
-IoT-Zoo is officially tested on Ubuntu Server 20.04 LTS. Other systems may work, but are not supported by the installer.
+IoT-Zoo is officially tested on Ubuntu Server 20.04 LTS and Ubuntu Server 22.04 LTS. Other systems may work, but are not officially supported by the installer.
 
 Use a VM if you are on Windows or macOS. WSL/WSL2 is not recommended because IoT-Zoo depends on Linux networking features, Open vSwitch, privileged namespaces, and packet capture.
 
@@ -23,13 +23,26 @@ sudo systemctl status docker
 sudo systemctl start docker
 ```
 
-If your user was added to the Docker group, close and reopen the terminal:
+If your user was added to the Docker group during installation, reboot the VM or log out and log in again:
+
+```bash
+sudo reboot
+```
+
+Alternatively, you can start a new shell with the updated Docker group:
+
+```bash
+newgrp docker
+```
+
+Then check:
 
 ```bash
 groups
+docker ps
 ```
 
-You should see `docker` in the group list.
+You should see `docker` in the group list, and `docker ps` should run without permission errors.
 
 ## Open vSwitch is not running
 
@@ -52,15 +65,15 @@ Then retry:
 ./scripts/check_environment.sh
 ```
 
-Manual fallback:
+Manual fallback for debugging only:
 
 ```bash
 sudo -E PYTHONPATH=$CONTAINERNET_PATH python3 run_experiment.py --time 60 --output /tmp/test.pcap
 ```
 
-This command is only for debugging. Normal usage should go through `scripts/run_demo.sh` or `scripts/run_full.sh`.
+Normal usage should go through `scripts/run_demo.sh` or `scripts/run_full.sh`.
 
-## Minimal demo says sample data is missing
+## Basic demo says sample data is missing
 
 Generate demo data from the compressed Urban Observatory datasets:
 
@@ -84,7 +97,7 @@ Internal Temperature dataset, usually under the building domain
 
 ## Docker image is missing
 
-For the demo:
+For the basic demo:
 
 ```bash
 ./scripts/build_images.sh --demo
@@ -113,8 +126,8 @@ See `docs/DATASETS.md` for expected paths.
 Use `/tmp` for PCAP output because packet capture runs with elevated privileges:
 
 ```bash
-./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_demo.pcap
-ls -lh /tmp/iot_zoo_demo.pcap
+./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_basic_demo.pcap
+ls -lh /tmp/iot_zoo_basic_demo.pcap
 ```
 
 Check logs:

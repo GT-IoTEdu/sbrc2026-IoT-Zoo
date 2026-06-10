@@ -1,4 +1,4 @@
-# Generated minimal demo data
+# Generated basic demo data
 
 This folder is populated by:
 
