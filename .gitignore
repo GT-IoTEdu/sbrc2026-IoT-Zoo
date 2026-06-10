@@ -7,3 +7,12 @@
 !*.log.xz
 devices/urban_observatory/**/*.csv
 *.pcap
+
+# IoT-Zoo generated artifacts
+*.pcap
+*.pcapng
+*.csv
+!sample_data/**/*.csv
+*.log
+__pycache__/
+*.pyc
