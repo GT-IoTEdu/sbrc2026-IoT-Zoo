@@ -9,6 +9,7 @@ echo
 # -----------------------------------------------------------------------------
 
 if [[ -f /etc/os-release ]]; then
+  # shellcheck disable=SC1091
   . /etc/os-release
 else
   echo "[WARN] Cannot detect OS because /etc/os-release was not found."
@@ -94,6 +95,7 @@ fi
 # -----------------------------------------------------------------------------
 
 echo "[4/6] Enabling Open vSwitch..."
+
 sudo systemctl enable --now openvswitch-switch || {
   echo "[WARN] Could not enable openvswitch-switch via systemctl."
   echo "[WARN] Please check the Open vSwitch installation manually if the environment check fails."
@@ -103,16 +105,23 @@ sudo systemctl enable --now openvswitch-switch || {
 # Python dependencies
 # -----------------------------------------------------------------------------
 
-echo "[5/6] Installing Python dependencies..."
+echo "[5/6] Installing Python dependencies for user and sudo contexts..."
+
+PYTHON_PACKAGES=(
+  docker
+  pandas
+  paho-mqtt
+  scapy
+  scikit-learn
+)
 
 python3 -m pip install --user --upgrade pip
+python3 -m pip install --user "${PYTHON_PACKAGES[@]}"
 
-python3 -m pip install --user \
-  docker \
-  pandas \
-  paho-mqtt \
-  scapy \
-  scikit-learn
+# Containernet is executed with sudo/root privileges, so root's Python
+# environment must also be able to import the Docker SDK and related packages.
+sudo python3 -m pip install --upgrade pip
+sudo python3 -m pip install "${PYTHON_PACKAGES[@]}"
 
 # -----------------------------------------------------------------------------
 # Containernet
