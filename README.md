@@ -62,6 +62,9 @@ Use this path on a clean VM or machine.
 git clone <repository-url>
 cd <repository-name>
 
+chmod +x scripts/*.sh
+chmod +x build_images.sh
+
 ./scripts/install_ubuntu_20_04.sh
 ```
 
