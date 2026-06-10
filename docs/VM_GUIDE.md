@@ -18,7 +18,7 @@ For a minimal demo, 2 vCPUs and 4 GB RAM may be enough, but the full topology sh
 ```bash
 git clone <repository-url>
 cd <repository-name>
-./scripts/install_ubuntu_20_04.sh
+./scripts/install_ubuntu.sh
 ```
 
 Close and reopen the terminal, then run:

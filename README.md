@@ -26,11 +26,13 @@ The project is designed to support reproducible experiments with heterogeneous I
 
 ## Supported environment
 
-The recommended and tested environment is:
+The recommended and tested environments are:
 
 ```text
-Ubuntu Server 20.04 LTS
+- Ubuntu Server 20.04 LTS
+- Ubuntu Server 22.04 LTS
 ```
+Other Linux distributions or Ubuntu versions may work, but they are not officially validated.
 
 IoT-Zoo depends on Linux network namespaces, Docker, Open vSwitch, Containernet/Mininet, privileged network operations, and packet capture. For this reason, Windows, macOS, and WSL/WSL2 are not supported as native execution environments. Use a Linux VM when working from Windows or macOS.
 
@@ -65,7 +67,7 @@ cd <repository-name>
 chmod +x scripts/*.sh
 chmod +x build_images.sh
 
-./scripts/install_ubuntu_20_04.sh
+./scripts/install_ubuntu.sh
 ```
 
 After installation, close and reopen the terminal if the script adds your user to the Docker group. Then run:
@@ -131,7 +133,7 @@ The full topology uses all available device profiles and the datasets stored und
 ├── DEVICE_PROFILES.md             # Device profile documentation
 ├── scripts/
 │   ├── check_environment.sh       # Diagnose the host environment
-│   ├── install_ubuntu_20_04.sh    # Install dependencies on Ubuntu Server 20.04 LTS
+│   ├── install_ubuntu.sh    # Install dependencies on Ubuntu Server
 │   ├── prepare_demo_data.sh       # Generate small demo data from .csv.xz files
 │   ├── prepare_demo_data.py       # Demo data sampler
 │   ├── build_images.sh            # Build demo or full Docker images
@@ -153,7 +155,7 @@ The full topology uses all available device profiles and the datasets stored und
 
 | Script | Purpose |
 |---|---|
-| `scripts/install_ubuntu_20_04.sh` | Installs system and Python dependencies on Ubuntu Server 20.04 LTS. |
+| `scripts/install_ubuntu.sh` | Installs system and Python dependencies on Ubuntu Server. |
 | `scripts/check_environment.sh` | Checks OS, Docker, Open vSwitch, Python packages, Containernet, project paths, datasets, and demo images. |
 | `scripts/prepare_demo_data.sh` | Generates a small demo dataset from the full `.csv.xz` files. |
 | `scripts/build_images.sh --demo` | Builds only the images needed by the minimal demo. |

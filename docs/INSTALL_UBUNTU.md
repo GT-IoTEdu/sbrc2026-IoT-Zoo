@@ -12,7 +12,7 @@ cd <repository-name>
 ## 2. Install system dependencies
 
 ```bash
-./scripts/install_ubuntu_20_04.sh
+./scripts/install_ubuntu.sh
 ```
 
 If the installer adds your user to the Docker group, close and reopen the terminal before continuing.
