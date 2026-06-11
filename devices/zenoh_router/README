@@ -1,0 +1,22 @@
+# Zenoh Router
+
+Roteador `Eclipse Zenoh` (imagem oficial `eclipse/zenoh:1.7.2`) que faz o papel de
+infraestrutura central da topologia estrela para o protocolo **Zenoh**, análogo ao
+broker MQTT (Mosquitto).
+
+Os dispositivos publicam suas amostras de telemetria via `client_zenoh.py`
+(modo `client`) conectando-se ao endpoint `tcp/<router>:7447`.
+
+## Portas
+
+- `7447/tcp` — endpoint de roteamento Zenoh (peers/clients)
+- `8000/tcp` — API REST opcional (plugin)
+
+## Execução
+
+A imagem tem o `ENTRYPOINT` substituído por `/bin/bash` para que o Containernet
+assuma o controle do container. O roteador é iniciado pelo `run_experiment.py`:
+
+```
+zenohd &
+```

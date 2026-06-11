@@ -1,0 +1,31 @@
+# Publicador DDS-XRCE genérico (`myzoo/xrce_client_base`)
+
+Como o Micro-XRCE-DDS não tem binding Python oficial, o cliente publicador dos
+dispositivos para o protocolo **DDS-XRCE** é um binário C único e reaproveitável
+por todos os devices, em vez de uma cópia por device (como acontece com
+`client_zenoh.py`).
+
+- `client_xrce.c` — cria participant → topic → publisher → datawriter e publica
+  cada linha do dataset CSV como amostra string no tópico informado, respeitando
+  `SLEEP_TIME`. Reabre o dataset no EOF (loop infinito).
+- `install.sh` — clona/compila Micro-CDR + Micro-XRCE-DDS-Client.
+- `compile.sh` — compila o `client_xrce` (linka `-lmicroxrcedds_client -lmicrocdr`).
+- `Dockerfile` — imagem base `myzoo/xrce_client_base`.
+
+## Build
+
+O `Dockerfile` faz `COPY` a partir da **raiz do repositório**, então a imagem é
+construída com o contexto na raiz (já tratado no `build_images.sh`):
+
+```
+docker build -t myzoo/xrce_client_base -f devices/_xrce_common/Dockerfile .
+```
+
+## Execução
+
+O dataset de cada device é montado em `/dataset.csv` via volume; os parâmetros
+são passados como argumentos (feito pelo `run_experiment.py` quando `PROTOCOL=xrce`):
+
+```
+client_xrce <agent_ip> 8888 <topic> /dataset.csv <sleep_seconds>
+```

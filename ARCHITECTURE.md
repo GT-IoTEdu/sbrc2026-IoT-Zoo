@@ -39,14 +39,39 @@ This script creates the Containernet topology, adds Docker containers as network
 Main responsibilities:
 
 - create the Containernet network;
-- add the MQTT broker;
-- add IoT device containers;
+- add the protocol infrastructure nodes (MQTT broker, Zenoh router, DDS-XRCE agent);
+- add IoT device containers (from the `CLASSIC_DEVICES` table);
 - add the video server and video clients;
 - connect all nodes to switch `s1`;
 - add the NAT gateway;
-- start services and clients;
+- start the service of the active protocol and the device clients;
 - capture packets with `tcpdump`;
 - stop and clean the experiment.
+
+### Multi-protocol selection
+
+The experiment supports three telemetry protocols, selected by the `PROTOCOL`
+environment variable (default `mqtt`). The star topology is the same in all cases;
+only the central node that is started and the client launched per device change:
+
+| `PROTOCOL` | Infra node (IP)            | Port           | Device client                         |
+|-----------|----------------------------|----------------|---------------------------------------|
+| `mqtt`    | Mosquitto broker (10.0.0.100) | 1883/tcp     | `/client.py` (paho-mqtt)              |
+| `zenoh`   | Zenoh router (10.0.0.101)  | 7447/tcp       | `/client_zenoh.py` (eclipse-zenoh)    |
+| `xrce`    | DDS-XRCE agent (10.0.0.102) | 8888/udp      | `client_xrce` (Micro-XRCE-DDS-Client) |
+
+Examples:
+
+```
+sudo python3 run_experiment.py -t 60 -o mqtt.pcap                 # default
+sudo PROTOCOL=zenoh python3 run_experiment.py -t 60 -o zenoh.pcap
+sudo PROTOCOL=xrce  python3 run_experiment.py -t 60 -o xrce.pcap
+```
+
+The Zenoh client is a faithful copy of each device's MQTT `client.py` with only the
+connection layer swapped (via the `iotzoo_zenoh` shim, source in
+`devices/_zenoh_common/`). The DDS-XRCE client is a single generic C publisher
+(`devices/_xrce_common/`) reused by all devices, fed by the device dataset.
 
 ## 3. Emulation Layer
 
@@ -54,7 +79,9 @@ The Emulation Layer contains infrastructure services and pluggable device profil
 
 Infrastructure services include:
 
-- MQTT broker;
+- MQTT broker (Mosquitto);
+- Zenoh router (Eclipse Zenoh);
+- DDS-XRCE agent (eProsima Micro-XRCE-DDS-Agent);
 - video server;
 - NAT gateway.
 
@@ -68,7 +95,7 @@ Device profiles include:
 - urban observatory sensors;
 - CCTV video profiles.
 
-Each profile reads a dataset or generates application data and converts it into network traffic, usually MQTT or RTSP.
+Each profile reads a dataset or generates application data and converts it into network traffic. Telemetry profiles can publish over MQTT, Zenoh, or DDS-XRCE (selected by the `PROTOCOL` variable); the CCTV profiles use RTSP.
 
 ## 4. Data Collection Layer
 

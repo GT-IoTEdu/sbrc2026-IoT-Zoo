@@ -1,0 +1,22 @@
+# DDS-XRCE Agent
+
+Agente `eProsima Micro-XRCE-DDS-Agent` que faz o papel de gateway/infraestrutura
+central da topologia estrela para o protocolo **DDS-XRCE**, análogo ao broker MQTT.
+
+No modelo DDS-XRCE os sensores são *clients* (recursos limitados) que falam com o
+*Agent* via UDP; o Agent traduz para o mundo DDS. Os dispositivos publicam suas
+amostras com o binário `client_xrce` (ver `devices/_xrce_common`), criando
+participant → topic → publisher → datawriter e escrevendo cada linha do dataset.
+
+## Portas
+
+- `8888/udp` — transporte UDP padrão XRCE-DDS
+
+## Execução
+
+A imagem tem o `ENTRYPOINT` substituído por `/bin/bash` para que o Containernet
+assuma o controle do container. O agente é iniciado pelo `run_experiment.py`:
+
+```
+MicroXRCEAgent udp4 -p 8888 &
+```

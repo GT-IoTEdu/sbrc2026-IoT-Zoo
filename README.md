@@ -189,6 +189,33 @@ sudo mv /tmp/iot_zoo_full.pcap ./iot_zoo_full.pcap
 sudo chown $USER:$USER ./iot_zoo_full.pcap
 ```
 > ⚠️ **Note:** Saving the `.pcap` file in `/tmp` is recommended to avoid permission blocks when packet capture tools write files directly inside the user's home directory.
+
+### Selecting the telemetry protocol (MQTT / Zenoh / DDS-XRCE)
+
+The testbed supports three IoT telemetry protocols over the **same star topology**.
+The protocol is chosen with the `PROTOCOL` environment variable (default `mqtt`).
+Each run starts only the corresponding central node and launches the matching
+client on every device, so you can generate a separate `.pcap` per protocol:
+
+```bash
+# MQTT (default) — Mosquitto broker (10.0.0.100), port 1883
+sudo PYTHONPATH=/home/$USER/containernet python3 run_experiment.py -t 120 -o /tmp/mqtt.pcap
+
+# Zenoh — Eclipse Zenoh router (10.0.0.101), port 7447
+sudo PROTOCOL=zenoh PYTHONPATH=/home/$USER/containernet python3 run_experiment.py -t 120 -o /tmp/zenoh.pcap
+
+# DDS-XRCE — eProsima Micro-XRCE-DDS agent (10.0.0.102), UDP 8888
+sudo PROTOCOL=xrce PYTHONPATH=/home/$USER/containernet python3 run_experiment.py -t 120 -o /tmp/xrce.pcap
+```
+
+- **MQTT**: each device runs its original `client.py` (paho-mqtt).
+- **Zenoh**: each device runs `client_zenoh.py` — a faithful copy of `client.py` with
+  only the connection layer swapped through the `iotzoo_zenoh` shim
+  (`devices/_zenoh_common/`). Full parity across all telemetry devices.
+- **DDS-XRCE**: a single generic C publisher (`devices/_xrce_common/`, image
+  `myzoo/xrce_client_base`) reused by every device, fed by the device's dataset and
+  publishing to the agent. The urban-observatory pandas pipeline is covered by
+  MQTT/Zenoh only.
 ---
 
 
@@ -213,7 +240,13 @@ Open the generated `.pcap` file in **Wireshark** to validate the traffic:
     * Observe the diversity of topics: `hospital/patients`, `vibration/cooler`, etc.
     * Note the different payload formats (JSON, Binary, XML).
 
-2.  **Video Filter (`udp` ou `rtsp`):**
+2.  **Zenoh Filter (`tcp.port == 7447`):**
+    * Present when running with `PROTOCOL=zenoh`; traffic between devices and the Zenoh router (`10.0.0.101`).
+
+3.  **DDS-XRCE Filter (`udp.port == 8888`):**
+    * Present when running with `PROTOCOL=xrce`; client↔agent traffic to the DDS-XRCE agent (`10.0.0.102`).
+
+4.  **Video Filter (`udp` ou `rtsp`):**
     * Verify the continuous flow of UDP packets between the Camera (`.21`) and the Server (`.20`).
 
 ---
@@ -259,7 +292,9 @@ The environment simulates a heterogeneous network where distinct IoT domains coe
 
 | Domain | Function | Device (`IP`) | Description |
 | :--- | :--- | :--- | :--- |
-| **Infrastructure** | **MQTT Broker** | `broker` (`10.0.0.100`) | Central Mosquitto server managing all message traffic. |
+| **Infrastructure** | **MQTT Broker** | `broker` (`10.0.0.100`) | Central Mosquitto server (`PROTOCOL=mqtt`). |
+| **Infrastructure** | **Zenoh Router** | `zenoh` (`10.0.0.101`) | Eclipse Zenoh router (`PROTOCOL=zenoh`, port 7447). |
+| **Infrastructure** | **DDS-XRCE Agent** | `xrce` (`10.0.0.102`) | eProsima Micro-XRCE-DDS agent (`PROTOCOL=xrce`, UDP 8888). |
 | **Infrastructure** | **Media Server** | `v_server` (`10.0.0.20`) | RTSP Server (MediaMTX) distributing video streams. |
 | **Infrastructure** | **NAT Gateway** | `nat0` (`10.0.0.254`) | Network Address Translation interface for internet access. |
 | **e-Health** | **IoMT (ECG)** | `patient1` (`10.0.0.7`) | Simulates vital signs with high-frequency MQTT (JSON). Includes time drift simulation. |
@@ -298,7 +333,7 @@ The environment simulates a heterogeneous network where distinct IoT domains coe
 | **Mobility** | **Pedestrian Count**| `gw_people` (`10.0.0.74`) | Footfall/Walking data from People Counter sensors. |
 
 ### 🔗 Network Topology
-The experiment uses a star topology managed by Mininet, where all devices communicate through a virtual switch (`s1`). The network is anchored by a **Central MQTT Broker** (`10.0.0.100`) for data messaging and a **Video Server** (`10.0.0.20`) for multimedia streaming, with an internet exit node via NAT (`10.0.0.254`).
+The experiment uses a star topology managed by Mininet, where all devices communicate through a virtual switch (`s1`). The network is anchored by three protocol infrastructure nodes — a **Central MQTT Broker** (`10.0.0.100`), a **Zenoh Router** (`10.0.0.101`), and a **DDS-XRCE Agent** (`10.0.0.102`) — plus a **Video Server** (`10.0.0.20`) for multimedia streaming, with an internet exit node via NAT (`10.0.0.254`). The active telemetry protocol is selected with the `PROTOCOL` variable (see *Selecting the telemetry protocol*).
 
 ---
 

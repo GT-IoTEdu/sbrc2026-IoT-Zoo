@@ -1,0 +1,25 @@
+# Shim Zenoh compartilhado (`iotzoo_zenoh.py`)
+
+Fonte canônica do shim de compatibilidade MQTT(paho) -> Zenoh usado por todos os
+`client_zenoh.py` dos dispositivos.
+
+Como os `Dockerfile` de cada device usam o próprio diretório como contexto de
+build, uma cópia idêntica de `iotzoo_zenoh.py` vive em cada pasta de device (mesmo
+padrão de duplicação já adotado pelo repositório para `client.py`). Para manter uma
+única fonte de verdade, `build_images.sh` sincroniza este arquivo para os diretórios
+dos devices antes de construir as imagens (passo "Sync Zenoh shim").
+
+## Como criar a variante Zenoh de um device
+
+`client_zenoh.py` é uma cópia fiel do `client.py` com APENAS a linha de import
+trocada:
+
+```
+import paho.mqtt.publish as publish   ->  from iotzoo_zenoh import publish
+import paho.mqtt.client  as mqtt       ->  from iotzoo_zenoh import client as mqtt
+```
+
+Toda a lógica de leitura do dataset, threads, timing e payload permanece idêntica.
+A publicação `publish.single(...)` / `client.publish(...)` é redirecionada para
+`session.put(key, payload)` no Zenoh Router.
+"""
