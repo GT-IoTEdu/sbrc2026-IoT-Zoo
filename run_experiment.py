@@ -62,6 +62,110 @@ URBAN_DEVICES = [
     {"name": "gw_people",   "ip": "10.0.0.74", "var": "Walking",      "topic": "city/people/flow"}
 ]
 
+# === PROTOCOLO ATIVO ===
+# Seleciona o protocolo de telemetria do experimento. Permite gerar capturas pcap
+# separadas por protocolo mantendo a mesma topologia estrela.
+#   PROTOCOL=mqtt  (default) -> broker Mosquitto, devices rodam /client.py
+#   PROTOCOL=zenoh           -> Zenoh Router, devices rodam /client_zenoh.py
+#   PROTOCOL=xrce            -> DDS-XRCE Agent, devices rodam o publicador C client_xrce
+PROTOCOL = os.environ.get("PROTOCOL", "mqtt").lower()
+
+# IPs da infraestrutura central (um nó por protocolo, todos na topologia estrela)
+BROKER_INT_IP = "10.0.0.100"     # Mosquitto (MQTT)
+ZENOH_ROUTER_IP = "10.0.0.101"   # Eclipse Zenoh Router
+XRCE_AGENT_IP = "10.0.0.102"     # Micro-XRCE-DDS Agent (UDP 8888)
+
+# Destino injetado em MQTT_BROKER_ADDR dos devices conforme o protocolo ativo.
+DEV_TARGET_IP = {
+    "mqtt": BROKER_INT_IP,
+    "zenoh": ZENOH_ROUTER_IP,
+    "xrce": XRCE_AGENT_IP,
+}.get(PROTOCOL, BROKER_INT_IP)
+
+# === TABELA CENTRAL DOS DISPOSITIVOS CLÁSSICOS ===
+# Uma única fonte de verdade para os 3 protocolos. Por device:
+#   image        : imagem MQTT/Zenoh (contém client.py e client_zenoh.py)
+#   topic        : tópico MQTT / key Zenoh / topic XRCE
+#   sleep/sleep_sd: cadência de publicação
+#   extra_env    : variáveis adicionais (ex.: SUBJECT_ID do mhealth)
+#   mqtt_script  : script lançado no modo MQTT
+#   zenoh_script : script lançado no modo Zenoh
+#   dataset      : caminho (relativo à raiz do repo) do CSV usado no modo XRCE,
+#                  montado em /dataset.csv no container myzoo/xrce_client_base
+CLASSIC_DEVICES = [
+    {"name": "predio",     "ip": "10.0.0.2",  "image": "myzoo/building_monitor",
+     "topic": "building", "sleep": 5,
+     "dataset": "devices/building_monitor/appliances_energy/energydata_complete.csv"},
+    {"name": "cooler",     "ip": "10.0.0.3",  "image": "myzoo/cooler_motor",
+     "topic": None, "sleep": 5,
+     "dataset": "devices/cooler_motor/accelerometer/accelerometer.csv"},
+    {"name": "domotic",    "ip": "10.0.0.4",  "image": "myzoo/domotic_monitor",
+     "topic": None, "sleep": 5,
+     "mqtt_script": "/client_bis.py", "zenoh_script": "/client_bis_zenoh.py",
+     "dataset": "devices/domotic_monitor/sml2010/NEW-DATA-1.T15.csv"},
+    {"name": "predictive", "ip": "10.0.0.5",  "image": "myzoo/predictive_maintenance",
+     "topic": None, "sleep": 5,
+     "dataset": "devices/predictive_maintenance/ai4i2020/ai4i2020.csv"},
+    {"name": "air",        "ip": "10.0.0.6",  "image": "myzoo/air_quality",
+     "topic": None, "sleep": 5,
+     "dataset": "devices/air_quality/air_quality/AirQualityUCI.csv"},
+    {"name": "patient1",   "ip": "10.0.0.7",  "image": "myzoo/mhealth",
+     "topic": "hospital/patients", "sleep": 5,
+     "extra_env": {"SUBJECT_ID": "1", "SPEED_FACTOR": "0.02"},
+     "dataset": "devices/mhealth-device/mhealth/mHealth_subject1.log"},
+    {"name": "sl_gw",      "ip": "10.0.0.8",  "image": "myzoo/smart_lighting",
+     "topic": "city/lighting", "sleep": 5, "sleep_sd": 1,
+     "dataset": "devices/smart_lighting/dataset/dataset.csv"},
+    {"name": "es_gw",      "ip": "10.0.0.9",  "image": "myzoo/environmental_sensors",
+     "topic": "school/environmental_sensors", "sleep": 5, "sleep_sd": 1,
+     "dataset": "devices/environmental_sensors/dataset/dataset.csv"},
+    {"name": "aq_gw",      "ip": "10.0.0.10", "image": "myzoo/aquaponics_fish_pond",
+     "topic": "aquaponics/fish_pond", "sleep": 5, "sleep_sd": 1,
+     "dataset": "devices/aquaponics_fish_pond/dataset/dataset.csv"},
+    {"name": "el_gw",      "ip": "10.0.0.11", "image": "myzoo/elevator_predictive_maintenance",
+     "topic": "building/elevator", "sleep": 5, "sleep_sd": 1,
+     "dataset": "devices/elevator_predictive_maintenance/dataset/dataset.csv"},
+    {"name": "pm_gw",      "ip": "10.0.0.12", "image": "myzoo/predictive_maintenance",
+     "topic": "industrial/predictive_maintenance", "sleep": 5, "sleep_sd": 1,
+     "dataset": "devices/predictive_maintenance/ai4i2020/ai4i2020.csv"},
+    {"name": "te_gw",      "ip": "10.0.0.13", "image": "myzoo/traction_elevator",
+     "topic": "elevator/traction/predictive_maintenance", "sleep": 5, "sleep_sd": 1,
+     "dataset": "devices/traction-elevator-predictive-maintenance/dataset/dataset.csv"},
+    {"name": "gr_gw",      "ip": "10.0.0.14", "image": "myzoo/greenhouse_sensor",
+     "topic": "greenhouse/env", "sleep": 5, "sleep_sd": 1,
+     "dataset": "devices/greenhouse_sensor/dataset/dataset.csv"},
+    {"name": "far_gw",     "ip": "10.0.0.15", "image": "myzoo/farming_sensor",
+     "topic": "farming_sensor/env", "sleep": 5, "sleep_sd": 1,
+     "dataset": "devices/farming_sensor/dataset/dataset.csv"},
+    {"name": "sb_gw",      "ip": "10.0.0.16", "image": "myzoo/smart_building_m5",
+     "topic": "building/m5", "sleep": 5, "sleep_sd": 1,
+     "dataset": "devices/smart_building_m5/dataset/dataset.csv"},
+    {"name": "ns_gw",      "ip": "10.0.0.17", "image": "myzoo/nurse_stress",
+     "topic": "hospital/nurse_stress", "sleep": 5, "sleep_sd": 1,
+     "dataset": "devices/nurse-stress-prediction/dataset/dataset.csv"},
+]
+
+
+def device_env(dev):
+    """Monta o dicionário de variáveis de ambiente de um device clássico."""
+    env = {"MQTT_BROKER_ADDR": DEV_TARGET_IP, "SLEEP_TIME": str(dev.get("sleep", 5))}
+    if dev.get("topic"):
+        env["MQTT_TOPIC_PUB"] = dev["topic"]
+    if dev.get("sleep_sd") is not None:
+        env["SLEEP_TIME_SD"] = str(dev["sleep_sd"])
+    env.update(dev.get("extra_env", {}))
+    return env
+
+
+def device_launch_cmd(dev):
+    """Comando de inicialização do device conforme o PROTOCOL ativo."""
+    if PROTOCOL == "zenoh":
+        return f'python3 -u {dev.get("zenoh_script", "/client_zenoh.py")}'
+    if PROTOCOL == "xrce":
+        topic = dev.get("topic") or dev["name"]
+        return f'/usr/local/bin/client_xrce {XRCE_AGENT_IP} 8888 "{topic}" /dataset.csv {dev.get("sleep", 5)}'
+    return f'python3 -u {dev.get("mqtt_script", "/client.py")}'
+
 def prepare_datasets(base_path):
     """
     Ensure that .xz files are extracted to .csv on the HOST before starting Mininet.
@@ -133,63 +237,46 @@ def run():
     net = Containernet(controller=Controller)
     net.addController('c0')
     
-    BROKER_INT_IP = "10.0.0.100"
-    
-    info(f'*** Initiating IoT-Zoo Experiment \n')
+    info(f'*** Initiating IoT-Zoo Experiment (PROTOCOL={PROTOCOL})\n')
 
-    # Basic Infrastructure
+    # Infraestrutura central: um nó por protocolo, todos presentes na topologia
+    # estrela. Apenas o serviço correspondente ao PROTOCOL ativo é iniciado.
     broker = net.addDocker('broker', ip=BROKER_INT_IP, dimage="myzoo/mqtt_broker", dcmd="/bin/bash")
+    zenoh_router = net.addDocker('zenoh', ip=ZENOH_ROUTER_IP, dimage="myzoo/zenoh_router", dcmd="/bin/bash")
+    xrce_agent = net.addDocker('xrce', ip=XRCE_AGENT_IP, dimage="myzoo/xrce_dds_agent", dcmd="/bin/bash")
 
-    # Classic Devices (IPs 10.0.0.2 - 10.0.0.7)
-    predio = net.addDocker('predio', ip="10.0.0.2", dimage="myzoo/building_monitor",
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "building", "SLEEP_TIME": "5"}, dcmd="/bin/bash")
-    cooler = net.addDocker('cooler', ip="10.0.0.3", dimage="myzoo/cooler_motor",
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "SLEEP_TIME": "5"}, dcmd="/bin/bash")
-    domotic = net.addDocker('domotic', ip="10.0.0.4", dimage="myzoo/domotic_monitor",
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "SLEEP_TIME": "5"}, dcmd="/bin/bash")
-    predictive = net.addDocker('predictive', ip="10.0.0.5", dimage="myzoo/predictive_maintenance",
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "SLEEP_TIME": "5"}, dcmd="/bin/bash")
-    air = net.addDocker('air', ip="10.0.0.6", dimage="myzoo/air_quality",
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "SLEEP_TIME": "5"}, dcmd="/bin/bash")
-    patient1 = net.addDocker('patient1', ip="10.0.0.7", dimage="myzoo/mhealth",
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "hospital/patients", "SUBJECT_ID": "1", "SPEED_FACTOR": "0.02"}, dcmd="/client.py")
-    lighting_gw = net.addDocker('sl_gw', ip="10.0.0.8", dimage="myzoo/smart_lighting", 
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "city/lighting", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    envir_sensors_gw = net.addDocker('es_gw', ip="10.0.0.9", dimage="myzoo/environmental_sensors", 
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "school/environmental_sensors", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    aquaponics_gw = net.addDocker('aq_gw', ip="10.0.0.10", dimage="myzoo/aquaponics_fish_pond", 
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "aquaponics/fish_pond", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    elevator_gw = net.addDocker('el_gw', ip="10.0.0.11", dimage="myzoo/elevator_predictive_maintenance", 
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "building/elevator", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    pred_maint_gw = net.addDocker('pm_gw', ip="10.0.0.12", dimage="myzoo/predictive_maintenance", 
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "industrial/predictive_maintenance", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    traction_elevator_gw = net.addDocker('te_gw', ip="10.0.0.13", dimage="myzoo/traction_elevator", 
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "elevator/traction/predictive_maintenance", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    greenhouse_gw =  net.addDocker('gr_gw', ip="10.0.0.14", dimage="myzoo/greenhouse_sensor", 
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "greenhouse/env", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    farming_gw =  net.addDocker('far_gw', ip="10.0.0.15", dimage="myzoo/farming_sensor",
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "farming_sensor/env", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    smart_building_gw = net.addDocker('sb_gw', ip="10.0.0.16", dimage="myzoo/smart_building_m5",
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "building/m5", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
-    nurse_stress_gw = net.addDocker('ns_gw', ip="10.0.0.17", dimage="myzoo/nurse_stress", 
-        environment={"MQTT_BROKER_ADDR": BROKER_INT_IP, "MQTT_TOPIC_PUB": "hospital/nurse_stress", "SLEEP_TIME": "5", "SLEEP_TIME_SD": "1"})
+    # Dispositivos clássicos a partir da tabela CLASSIC_DEVICES. No modo xrce a
+    # imagem é trocada pelo publicador C genérico (myzoo/xrce_client_base) e o
+    # dataset do device é montado em /dataset.csv.
+    devices_nodes = []
+    for dev in CLASSIC_DEVICES:
+        if PROTOCOL == "xrce":
+            dataset_host = os.path.join(CURRENT_DIR, dev["dataset"])
+            node = net.addDocker(dev["name"], ip=dev["ip"], dimage="myzoo/xrce_client_base",
+                volumes=[f"{dataset_host}:/dataset.csv:ro"],
+                environment=device_env(dev), dcmd="/bin/bash")
+        else:
+            node = net.addDocker(dev["name"], ip=dev["ip"], dimage=dev["image"],
+                environment=device_env(dev), dcmd="/bin/bash")
+        devices_nodes.append(node)
 
-    # Centralized creation of urban gateways
+    # Centralized creation of urban gateways (apenas MQTT/Zenoh; o pipeline pandas
+    # do urban_sensor não é coberto pelo publicador XRCE genérico).
     gateways = []
-    
-    for dev in URBAN_DEVICES:
-        info(f'*** Gateway {dev["name"]} ({dev["ip"]}) -> Monitoring {dev["var"]}\n')
-        
-        gw = net.addDocker(dev["name"], ip=dev["ip"], dimage="myzoo/urban_sensor",
-            volumes=[f"{PATH_TO_DATASET}:/data:ro"], 
-            environment={
-                "MQTT_BROKER_ADDR": BROKER_INT_IP, 
-                "TIME_SCALE": "60.0",
-                "TARGET_VARIABLE": dev["var"],
-                "MQTT_TOPIC_PUB": dev["topic"]
-            }, dcmd="/bin/bash")
-        
-        gateways.append(gw)
+    if PROTOCOL in ("mqtt", "zenoh"):
+        for dev in URBAN_DEVICES:
+            info(f'*** Gateway {dev["name"]} ({dev["ip"]}) -> Monitoring {dev["var"]}\n')
+
+            gw = net.addDocker(dev["name"], ip=dev["ip"], dimage="myzoo/urban_sensor",
+                volumes=[f"{PATH_TO_DATASET}:/data:ro"],
+                environment={
+                    "MQTT_BROKER_ADDR": DEV_TARGET_IP,
+                    "TIME_SCALE": "60.0",
+                    "TARGET_VARIABLE": dev["var"],
+                    "MQTT_TOPIC_PUB": dev["topic"]
+                }, dcmd="/bin/bash")
+
+            gateways.append(gw)
 
     # CCTV
     v_server = net.addDocker('v_srv', ip="10.0.0.20", dimage="myzoo/server_video", privileged=True, dcmd="/bin/bash")
@@ -200,7 +287,7 @@ def run():
 
     s1 = net.addSwitch('s1')
     
-    all_nodes = [broker, predio, cooler, domotic, predictive, air, patient1, lighting_gw, envir_sensors_gw, aquaponics_gw, elevator_gw, pred_maint_gw, traction_elevator_gw, greenhouse_gw, farming_gw, smart_building_gw, nurse_stress_gw, v_server, v_camera, v_consumer] + gateways
+    all_nodes = [broker, zenoh_router, xrce_agent, v_server, v_camera, v_consumer] + devices_nodes + gateways
     
     for node in all_nodes:
         net.addLink(node, s1)
@@ -220,39 +307,35 @@ def run():
     info(f'*** Starting tcpdump...\n')
     s1.cmd(f"tcpdump -i any -w {pcap_path} -U not port 6653 &")
 
-    info('*** Starting Services...\n')
-    broker.cmd('/usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf -d &')
-    
+    info(f'*** Starting Services... (PROTOCOL={PROTOCOL})\n')
+    # Inicia apenas o serviço de infraestrutura do protocolo ativo.
+    if PROTOCOL == "zenoh":
+        zenoh_router.cmd('zenohd > /tmp/zenohd.log 2>&1 &')
+    elif PROTOCOL == "xrce":
+        xrce_agent.cmd('MicroXRCEAgent udp4 -p 8888 > /tmp/xrce_agent.log 2>&1 &')
+    else:
+        broker.cmd('/usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf -d &')
+    time.sleep(2)  # Aguarda o serviço central subir antes dos devices.
+
     # Network Fix for Ubuntu/Privileged containers
     v_server.cmd('ip link set v_srv-eth0 up')
     v_camera.cmd('ip link set v_cam-eth0 up')
     v_consumer.cmd('ip link set v_cons-eth0 up')
     time.sleep(1)
-    
+
     v_server.cmd('/mediamtx /mediamtx.yml > /tmp/v_srv.log 2>&1 &')
     time.sleep(3) # Wait for the server to boot up before turning on the camera.
 
-    predio.cmd('python3 -u /client.py > /dev/null 2>&1 &')
-    cooler.cmd('python3 -u /client.py > /dev/null 2>&1 &')
-    domotic.cmd('python3 -u /client_bis.py > /dev/null 2>&1 &') 
-    predictive.cmd('python3 -u /client.py > /dev/null 2>&1 &')
-    air.cmd('python3 -u /client.py > /dev/null 2>&1 &')
-    patient1.cmd('python3 -u /client.py > /dev/null 2>&1 &')
-    lighting_gw.cmd('python3 -u /client.py > /tmp/sl_gw.log 2>&1 &')
-    envir_sensors_gw.cmd('python3 -u /client.py > /tmp/es_gw.log 2>&1 &')
-    aquaponics_gw.cmd('python3 -u /client.py > /tmp/aq_gw.log 2>&1 &')
-    elevator_gw.cmd('python3 -u /client.py > /tmp/el_gw.log 2>&1 &')
-    traction_elevator_gw.cmd('python3 -u /client.py > /tmp/te_gw.log 2>&1 &')
-    pred_maint_gw.cmd('python3 -u /client.py > /tmp/pm_gw.log 2>&1 &')
-    greenhouse_gw.cmd('python3 -u /client.py > /tmp/gr_gw.log 2>&1 &')
-    farming_gw.cmd('python3 -u /client.py > /tmp/far_gw.log 2>&1 &')
-    smart_building_gw.cmd('python3 -u /client.py > /tmp/sb_gw.log 2>&1 &')
-    nurse_stress_gw.cmd('python3 -u /client.py > /tmp/ns_gw.log 2>&1 &')
+    # Dispositivos clássicos: script/binário conforme o PROTOCOL ativo.
+    for dev, node in zip(CLASSIC_DEVICES, devices_nodes):
+        node.cmd(f'{device_launch_cmd(dev)} > /tmp/{dev["name"]}.log 2>&1 &')
+
     v_camera.cmd('python3 -u /ip_camera.py > /tmp/v_cam.log 2>&1 &')
     v_consumer.cmd('python3 -u /consume.py > /tmp/v_cons.log 2>&1 &')
-    
+
+    urban_script = "/urban_sensor_zenoh.py" if PROTOCOL == "zenoh" else "/urban_sensor.py"
     for gw in gateways:
-        gw.cmd(f'python3 -u /urban_sensor.py > /tmp/{gw.name}.log 2>&1 &')
+        gw.cmd(f'python3 -u {urban_script} > /tmp/{gw.name}.log 2>&1 &')
 
     info(f'*** Running simulation by {args.time}s...\n')
     try:
@@ -270,4 +353,8 @@ def run():
 if __name__ == '__main__':
     # Uses the dynamic path detected at the top of the script
     prepare_datasets(PATH_TO_DATASET)
+    # No modo XRCE os datasets dos devices clássicos são montados como CSV no
+    # publicador C, então precisam estar descompactados no host.
+    if PROTOCOL == "xrce":
+        prepare_datasets(os.path.join(CURRENT_DIR, "devices"))
     run()

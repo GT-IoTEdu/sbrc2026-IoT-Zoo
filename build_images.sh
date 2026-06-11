@@ -4,13 +4,31 @@ set -e
 echo "--- 🔧 Step 0: Permissions ---"
 find devices -name "*.py" -exec chmod +x {} +
 
+echo "--- 🔁 Step 0.1: Sync Zenoh shim into device dirs ---"
+# Fonte única de verdade do shim em devices/_zenoh_common; copia para cada device
+# que tenha uma variante *_zenoh.py (o contexto de build é a própria pasta do device).
+for zfile in devices/*/iotzoo_zenoh.py; do
+    cp -f devices/_zenoh_common/iotzoo_zenoh.py "$zfile"
+done
+
 echo "--- 🏗️  Step 1: Building the CA (Security) ---"
 docker build -t iotsim/certificates:latest ./devices/certificates
 
-echo "--- 🏗️  Step 2: Building Devices ---"
+echo "--- 🏗️  Step 2: Building Protocol Infrastructure (Brokers/Routers/Agents) ---"
 
-echo "[1/20] 📡 MQTT Broker..."
+echo "[infra] 📡 MQTT Broker (Mosquitto)..."
 docker build -t myzoo/mqtt_broker ./devices/mqtt_broker
+
+echo "[infra] 🌐 Zenoh Router..."
+docker build -t myzoo/zenoh_router ./devices/zenoh_router
+
+echo "[infra] 🛰️  DDS-XRCE Agent (eProsima Micro-XRCE-DDS-Agent)..."
+docker build -t myzoo/xrce_dds_agent ./devices/xrce_dds_agent
+
+echo "[infra] 🧩 DDS-XRCE generic client base (Micro-XRCE-DDS-Client)..."
+docker build -t myzoo/xrce_client_base -f devices/_xrce_common/Dockerfile .
+
+echo "--- 🏗️  Step 3: Building Devices ---"
 
 echo "[2/20] 🏙️ Urban Observatory (Air, Water, Weather, Mobility)..."
 docker build -t myzoo/urban_sensor ./devices/urban_observatory
