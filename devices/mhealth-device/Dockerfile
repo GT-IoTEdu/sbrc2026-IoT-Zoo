@@ -16,7 +16,7 @@ RUN wget https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox
     printf '#!/bin/sh\n/bin/busybox sh\n' > /bin/busyboxsh && \
     chmod +x /bin/busyboxsh
 
-RUN pip3 install --no-cache-dir paho-mqtt==1.6.1
+RUN pip3 install --no-cache-dir paho-mqtt==1.6.1 eclipse-zenoh==1.7.2
 
 # Copia todos os subjects para dentro da imagem
 # Estrutura esperada no host:
@@ -30,6 +30,8 @@ COPY mhealth/ /mhealth/
 COPY --from=iotsim/certificates:latest /artifacts/pki/iot-sim-ca.crt /iot-sim-ca.crt
 
 COPY client.py /client.py
+COPY client_zenoh.py /client_zenoh.py
+COPY iotzoo_zenoh.py /iotzoo_zenoh.py
 RUN chmod +x /client.py
 
 ENTRYPOINT ["/client.py"]
