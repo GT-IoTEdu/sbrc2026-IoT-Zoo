@@ -249,4 +249,8 @@ Reference:
 
 ## License
 
-See the repository license file. Keep this section and the license badge consistent with the selected license before public release.
+***Copyright (c) [2026] [RNP – REDE NACIONAL DE ENSINO E PESQUISA]***
+
+Este código foi desenvolvido pelo GT-IoTEdu e está licenciado sob os termos da Licença BSD. Ele pode ser livremente utilizado, modificado e distribuído, inclusive para fins comerciais, desde que este aviso de direitos autorais seja mantido.
+
+Este software é fornecido “como está”, sem qualquer garantia, expressa ou implícita, incluindo, sem limitação, garantias de comercialização ou adequação a um propósito específico. A RNP e os autores não se responsabilizam por quaisquer danos ou prejuízos decorrentes do uso deste software.
