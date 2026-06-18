@@ -1,6 +1,6 @@
 # Zenoh Router
 
-Roteador `Eclipse Zenoh` (imagem oficial `eclipse/zenoh:1.7.2`) que faz o papel de
+Roteador `Eclipse Zenoh` (imagem oficial `eclipse/zenoh:1.5.0`) que faz o papel de
 infraestrutura central da topologia estrela para o protocolo **Zenoh**, análogo ao
 broker MQTT (Mosquitto).
 

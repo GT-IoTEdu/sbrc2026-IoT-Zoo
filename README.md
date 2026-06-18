@@ -216,6 +216,40 @@ sudo PROTOCOL=xrce PYTHONPATH=/home/$USER/containernet python3 run_experiment.py
   `myzoo/xrce_client_base`) reused by every device, fed by the device's dataset and
   publishing to the agent. The urban-observatory pandas pipeline is covered by
   MQTT/Zenoh only.
+
+### Compatibility notes (Linux)
+
+- **Line endings:** all scripts must keep **LF** endings. A CRLF in a shebang
+  (e.g. `#!/usr/bin/env python3\r`) makes the kernel look for an interpreter
+  `python3\r` and the device entrypoint fails to start on Linux. A `.gitattributes`
+  enforces LF for `*.py`/`*.sh`/`*.c`; do not commit CRLF.
+- **Zenoh version is pinned to `1.5.0`** (router image and `eclipse-zenoh` Python
+  wheel) because the device images are built on `ubuntu:focal` (Python 3.8), and
+  `1.5.0` is the last release shipping a `cp38` wheel — `1.6+` only provide a Rust
+  source distribution that fails to build on focal. Bumping it requires a newer
+  Python base image. Router and client must stay on the same 1.x line.
+
+### Quick standalone smoke test (no Containernet)
+
+To verify a single protocol end-to-end without the full topology (useful on a dev
+box without Containernet), use a Docker bridge network. Example for Zenoh:
+
+```bash
+docker network create iotzoo_test
+docker run -d --name zr --network iotzoo_test myzoo/zenoh_router -c "zenohd"
+# subscriber:
+docker run --rm --network iotzoo_test --entrypoint python3 myzoo/building_monitor -u -c \
+  'import zenoh,time;c=zenoh.Config();c.insert_json5("mode","\"client\"");c.insert_json5("connect/endpoints","[\"tcp/zr:7447\"]");s=zenoh.open(c);s.declare_subscriber("building/**",lambda k:print(k.key_expr,k.payload.to_bytes().decode()));time.sleep(30)' &
+# device in zenoh mode (override the ENTRYPOINT, which defaults to the MQTT client.py):
+docker run --rm --network iotzoo_test -e MQTT_BROKER_ADDR=zr -e MQTT_TOPIC_PUB=building -e SLEEP_TIME=2 \
+  --entrypoint python3 myzoo/building_monitor -u /client_zenoh.py
+```
+
+For DDS-XRCE the C publisher needs the agent's **IPv4 address** (not a hostname):
+`MicroXRCEAgent udp4 -p 8888` on the agent, then
+`client_xrce <AGENT_IP> 8888 building /dataset.csv 2` on `myzoo/xrce_client_base`
+with a plain-CSV dataset mounted at `/dataset.csv`.
+
 ---
 
 

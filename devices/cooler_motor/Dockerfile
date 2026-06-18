@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir paho-mqtt==1.6.1 eclipse-zenoh==1.7.2
+RUN pip3 install --no-cache-dir paho-mqtt==1.6.1 eclipse-zenoh==1.5.0
 
 # Cria dados dummy (já que não temos o xz original)
 RUN echo "timestamp,x,y,z" > /accelerometer.csv && \

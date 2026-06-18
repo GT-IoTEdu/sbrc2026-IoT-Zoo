@@ -63,6 +63,10 @@ static int next_line(FILE** fp, const char* path, char* out, size_t out_sz)
 
 int main(int argc, char** argv)
 {
+    // stdout sem buffer de bloco: garante que os logs de publicação apareçam em
+    // tempo real no /tmp/<device>.log do experimento (equivalente ao `python -u`).
+    setvbuf(stdout, NULL, _IOLBF, 0);
+
     if (argc != 6) {
         printf("Usage: %s <agent_ip> <agent_port> <topic> <dataset_csv> <sleep_seconds>\n",
                argv[0]);

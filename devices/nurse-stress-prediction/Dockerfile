@@ -20,7 +20,7 @@ RUN wget https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox
     printf '#!/bin/sh\n/bin/busybox sh\n' > /bin/busyboxsh &&\
     chmod +x /bin/busyboxsh
 
-RUN pip3 install --no-cache-dir paho-mqtt==1.6.1 eclipse-zenoh==1.7.2
+RUN pip3 install --no-cache-dir paho-mqtt==1.6.1 eclipse-zenoh==1.5.0
 
 COPY dataset/dataset.csv.xz /dataset.csv.xz
 

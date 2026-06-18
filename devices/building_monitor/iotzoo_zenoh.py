@@ -52,6 +52,21 @@ class _PublishModule:
                auth=None, tls=None, **kwargs):
         _put(hostname, topic, payload)
 
+    @staticmethod
+    def multiple(msgs, hostname="localhost", port=1883, auth=None, tls=None,
+                 **kwargs):
+        # Aceita as duas formas suportadas pelo paho.mqtt.publish.multiple:
+        #   tupla: (topic, payload, qos, retain)
+        #   dict : {"topic": ..., "payload": ..., "qos": ..., "retain": ...}
+        for msg in msgs:
+            if isinstance(msg, dict):
+                topic = msg["topic"]
+                payload = msg.get("payload")
+            else:
+                topic = msg[0]
+                payload = msg[1] if len(msg) > 1 else None
+            _put(hostname, topic, payload)
+
 
 publish = _PublishModule()
 
