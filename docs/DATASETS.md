@@ -22,7 +22,7 @@ devices/building_monitor/appliances_energy/energydata_complete.csv.xz
 devices/predictive_maintenance/ai4i2020/ai4i2020.csv.xz
 ```
 
-During the Docker image build, each Dockerfile copies the dataset expected by its profile. If a dataset file is missing, the corresponding image build will fail with a Docker `COPY` error.
+During the Docker image build, each Dockerfile copies the dataset expected by its profile. If a dataset file is missing, the corresponding image build will fail with a clear Docker `COPY` error.
 
 ## Urban Observatory layout
 
@@ -44,7 +44,7 @@ devices/urban_observatory/
 └── urban_sensor.py
 ```
 
-The full orchestrator mounts `devices/urban_observatory/` at runtime. Before starting the full topology, `run_experiment.py` checks this folder and uncompresses missing `.csv` files from `.csv.xz` sources when needed, while keeping the original `.csv.xz` files.
+The full orchestrator mounts `devices/urban_observatory/` at runtime. Before starting the full topology, `run_experiment.py` checks this folder and uncompresses missing `.csv` files from `.csv.xz` sources when needed, keeping the original `.csv.xz` files.
 
 ## Basic demo data
 
@@ -60,7 +60,7 @@ This command creates small CSV files under:
 sample_data/urban_observatory/
 ```
 
-The generated files are enough to validate the pipeline for a 60- or 120-second basic demo, with a small safety margin. The script samples the sources needed by `demo_experiment.py`:
+The generated files are enough to validate the pipeline for a 60- or 120-second demo, with a small safety margin. The script samples the sources needed by `demo_experiment.py`:
 
 ```text
 CO air-quality telemetry
@@ -72,7 +72,7 @@ The original compressed datasets are not modified.
 
 ## Full topology data
 
-The full topology uses the complete profile catalog and the datasets stored under each device profile folder. The most relevant expected paths are:
+The full topology uses the complete profile catalog. The most relevant expected paths are:
 
 ```text
 devices/air_quality/air_quality/AirQualityUCI.csv.xz

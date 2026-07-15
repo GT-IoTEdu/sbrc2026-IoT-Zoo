@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal IoT-Zoo demo scenario.
+"""Basic IoT-Zoo demo scenario.
 
 This script intentionally uses a small subset of the full topology so that new users
 can validate the environment before restoring all datasets and running the full
@@ -80,7 +80,7 @@ def fix_checksum(node) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the minimal IoT-Zoo demo scenario.")
+    parser = argparse.ArgumentParser(description="Run the basic IoT-Zoo demo scenario.")
     parser.add_argument("-t", "--time", type=int, default=120, help="Experiment duration in seconds")
     parser.add_argument("-o", "--output", default="/tmp/iot_zoo_demo.pcap", help="PCAP output path")
     args = parser.parse_args()
@@ -102,7 +102,7 @@ def main() -> None:
         net = Containernet(controller=Controller)
         net.addController("c0")
 
-        info("*** Creating minimal IoT-Zoo demo topology\n")
+        info("*** Creating basic IoT-Zoo demo topology\n")
         s1 = net.addSwitch("s1")
         broker = net.addDocker("broker", ip=BROKER_IP, dimage="myzoo/mqtt_broker", dcmd="/bin/bash")
         net.addLink(broker, s1)

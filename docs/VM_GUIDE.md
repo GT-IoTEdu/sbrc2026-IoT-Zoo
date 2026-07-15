@@ -1,61 +1,52 @@
 # VM guide
 
 The recommended way to run IoT-Zoo from Windows or macOS is to create a Linux VM and install the project inside it.
-## Recommended VM configuration
+
+## Recommended VM
 
 ```text
-Ubuntu Server 20.04 LTS or Ubuntu Server 22.04 LTS
+Ubuntu Server 22.04 LTS or 20.04 LTS
 4 vCPUs
 8 GB RAM
-40–50 GB disk
+40-50 GB disk
+NAT networking
 ```
 
-For the basic demo, 2 vCPUs and 4 GB RAM may be enough, but the full topology should use the recommended resources.
+The basic demo can run with 2 vCPUs, 4 GB RAM, and about 20 GB disk.
 
-## Installation inside the VM
+## Setup inside the VM
 
 ```bash
 git clone <repository-url>
 cd <repository-name>
-
-chmod +x scripts/*.sh
-chmod +x build_images.sh
-
+chmod +x scripts/*.sh build_images.sh run_experiment.py demo_experiment.py topology_loader.py
 ./scripts/install_ubuntu.sh
-```
-
-If the installer adds your user to the Docker group, reboot the VM or log out and log in again before continuing:
-
-```bash
 sudo reboot
 ```
 
-Then run:
+After reboot:
 
 ```bash
+cd <repository-name>
 ./scripts/check_environment.sh
+```
+
+## First validation
+
+```bash
 ./scripts/prepare_demo_data.sh --duration 120 --clean
 ./scripts/build_images.sh --demo
-./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_basic_demo.pcap
+./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_demo.pcap
 ```
 
-Check the generated capture:
+## Configurable full-topology validation
 
 ```bash
-ls -lh /tmp/iot_zoo_basic_demo.pcap
-tcpdump -r /tmp/iot_zoo_basic_demo.pcap -n port 1883 -c 10
+./scripts/build_images.sh --full
+./scripts/run_full.sh --topology topology.yaml --dry-run
+./scripts/run_full.sh --time 120 --output /tmp/iot_zoo_full.pcap
 ```
 
-## Sharing output files
+## Prebuilt VM image
 
-PCAP files are usually written to `/tmp`. Copy them to a shared folder or use `scp` from the host machine.
-
-Example:
-
-```bash
-cp /tmp/iot_zoo_basic_demo.pcap ~/iot_zoo_basic_demo.pcap
-```
-
-## Why a VM is recommended
-
-IoT-Zoo creates Docker containers, virtual switches, network namespaces, routes, and packet capture processes. A dedicated VM keeps these changes isolated from your main operating system.
+If a prebuilt VM image is distributed, change any default password before exposing the VM to public networks. The image should contain no generated PCAP files, temporary logs, shell history, or temporary dataset-reduction scripts.

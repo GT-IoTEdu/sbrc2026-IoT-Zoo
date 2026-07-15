@@ -1,66 +1,44 @@
 # System requirements and portability
 
-## Officially supported systems
-
-IoT-Zoo is currently tested and recommended on:
+## Officially validated targets
 
 ```text
 Ubuntu Server 20.04 LTS
 Ubuntu Server 22.04 LTS
 ```
 
-These are the environments targeted by the installation script.
+The framework may work on other Linux distributions, but they are not officially validated.
 
-## Why the environment is restricted
+## Unsupported native environments
 
-IoT-Zoo is not a regular Python-only application. It requires system-level networking support, including:
+Windows, macOS, and WSL/WSL2 are not supported as native execution environments because IoT-Zoo depends on Docker, Open vSwitch, Containernet/Mininet, Linux network namespaces, privileged networking, and packet capture.
 
-* Linux network namespaces;
-* Docker containers used as emulated hosts;
-* Open vSwitch bridges and virtual links;
-* Containernet/Mininet topology control;
-* privileged routing and interface configuration;
-* packet capture with `tcpdump`.
+Use a Linux VM from Windows or macOS.
 
-Small differences in kernel, Docker, Open vSwitch, Mininet, or Python packaging can affect execution. For reproducibility, use Ubuntu Server 20.04 LTS or Ubuntu Server 22.04 LTS.
+## Recommended resources
 
-## Requirements for other Linux systems
+| Scenario | vCPU | RAM | Disk |
+|---|---:|---:|---:|
+| Basic demo | 2+ | 4 GB+ | 20 GB+ |
+| Configurable full topology | 4+ | 8 GB+ | 40-50 GB+ |
 
-Other Linux distributions or Ubuntu versions are not officially supported, but advanced users may try to run IoT-Zoo if they provide compatible versions of:
+## Required system packages
 
-| Component                                      | Required for                                         |
-| ---------------------------------------------- | ---------------------------------------------------- |
-| Docker Engine                                  | Running infrastructure and device profile containers |
-| Open vSwitch                                   | Virtual switching and traffic aggregation            |
-| Mininet/Containernet                           | Network topology orchestration                       |
-| Python 3.8+                                    | Running orchestration and conversion scripts         |
-| `pandas`                                       | Dataset-driven profile processing                    |
-| `paho-mqtt`                                    | MQTT publishers/clients                              |
-| `scapy`                                        | Optional PCAP conversion utilities                   |
-| `scikit-learn`                                 | Optional conversion and analysis utilities           |
-| `tcpdump`                                      | PCAP capture                                         |
-| `tshark`                                       | Optional packet inspection/conversion                |
-| `xz-utils`                                     | Reading compressed datasets                          |
-| `ethtool`, `iproute2`, `iptables`, `net-tools` | Network setup and diagnostics                        |
+- Docker Engine or `docker.io`
+- Open vSwitch
+- Containernet/Mininet
+- Python 3 and pip
+- `tcpdump`
+- `xz-utils`
+- `ethtool`, `iproute2`, `iptables`, `net-tools`
+- `tshark` for optional PCAP inspection/conversion
 
-If you use another system, run:
+## Required Python packages
 
-```bash
-./scripts/check_environment.sh
-```
+- PyYAML
+- pandas
+- paho-mqtt
+- scapy
+- scikit-learn
 
-The script will report missing components, but it will not attempt to install dependencies on unsupported systems.
-
-## Unsupported environments
-
-| Environment           | Status                   | Recommendation      |
-| --------------------- | ------------------------ | ------------------- |
-| Windows native        | Unsupported              | Use a Linux VM      |
-| macOS native          | Unsupported              | Use a Linux VM      |
-| WSL/WSL2              | Not recommended          | Use a Linux VM      |
-| Ubuntu 24.04 or newer | Not officially validated | Advanced users only |
-| Fedora/Debian/Arch    | Not officially supported | Advanced users only |
-
-## Recommended VM path
-
-When in doubt, create a clean Ubuntu Server 20.04 LTS or Ubuntu Server 22.04 LTS VM and follow `docs/INSTALL_UBUNTU.md`.
+The installer attempts to install these for both the regular user and root/sudo context because Containernet execution uses elevated privileges.

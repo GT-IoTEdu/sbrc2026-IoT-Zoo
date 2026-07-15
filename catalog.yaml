@@ -1,0 +1,219 @@
+# IoT-Zoo profile catalog (authored by profile developers).
+# Each entry is a distinct, reusable device profile. Operators SELECT from here.
+profiles:
+  building_monitor:
+    image: myzoo/building_monitor
+    domain: built_environment
+    protocol: mqtt
+    dcmd: /bin/bash
+    start: python3 -u /client.py
+    log: /dev/null
+    env:
+      SLEEP_TIME: '5'
+  cooler_motor:
+    image: myzoo/cooler_motor
+    domain: industrial
+    protocol: mqtt
+    dcmd: /bin/bash
+    start: python3 -u /client.py
+    log: /dev/null
+    env:
+      SLEEP_TIME: '5'
+  domotic_monitor:
+    image: myzoo/domotic_monitor
+    domain: smart_home
+    protocol: mqtt
+    dcmd: /bin/bash
+    start: python3 -u /client_bis.py
+    log: /dev/null
+    env:
+      SLEEP_TIME: '5'
+  predictive_maintenance:
+    image: myzoo/predictive_maintenance
+    domain: industrial
+    protocol: mqtt
+    dcmd: /bin/bash
+    start: python3 -u /client.py
+    log: /dev/null
+    env:
+      SLEEP_TIME: '5'
+  air_quality:
+    image: myzoo/air_quality
+    domain: smart_city
+    protocol: mqtt
+    dcmd: /bin/bash
+    start: python3 -u /client.py
+    log: /dev/null
+    env:
+      SLEEP_TIME: '5'
+  mhealth:
+    image: myzoo/mhealth
+    domain: human_centric
+    protocol: mqtt
+    dcmd: /client.py
+    start: python3 -u /client.py
+    log: /dev/null
+    env: {}
+  smart_lighting:
+    image: myzoo/smart_lighting
+    domain: built_environment
+    protocol: mqtt
+    start: python3 -u /client.py
+    log: /tmp/${name}.log
+    env:
+      SLEEP_TIME: '5'
+      SLEEP_TIME_SD: '1'
+  environmental_sensors:
+    image: myzoo/environmental_sensors
+    domain: human_centric
+    protocol: mqtt
+    start: python3 -u /client.py
+    log: /tmp/${name}.log
+    env:
+      SLEEP_TIME: '5'
+      SLEEP_TIME_SD: '1'
+  aquaponics_fish_pond:
+    image: myzoo/aquaponics_fish_pond
+    domain: smart_agriculture
+    protocol: mqtt
+    start: python3 -u /client.py
+    log: /tmp/${name}.log
+    env:
+      SLEEP_TIME: '5'
+      SLEEP_TIME_SD: '1'
+  elevator_predictive_maintenance:
+    image: myzoo/elevator_predictive_maintenance
+    domain: industrial
+    protocol: mqtt
+    start: python3 -u /client.py
+    log: /tmp/${name}.log
+    env:
+      SLEEP_TIME: '5'
+      SLEEP_TIME_SD: '1'
+  traction_elevator:
+    image: myzoo/traction_elevator
+    domain: industrial
+    protocol: mqtt
+    start: python3 -u /client.py
+    log: /tmp/${name}.log
+    env:
+      SLEEP_TIME: '5'
+      SLEEP_TIME_SD: '1'
+  greenhouse_sensor:
+    image: myzoo/greenhouse_sensor
+    domain: smart_agriculture
+    protocol: mqtt
+    start: python3 -u /client.py
+    log: /tmp/${name}.log
+    env:
+      SLEEP_TIME: '5'
+      SLEEP_TIME_SD: '1'
+  farming_sensor:
+    image: myzoo/farming_sensor
+    domain: smart_agriculture
+    protocol: mqtt
+    start: python3 -u /client.py
+    log: /tmp/${name}.log
+    env:
+      SLEEP_TIME: '5'
+      SLEEP_TIME_SD: '1'
+  smart_building_m5:
+    image: myzoo/smart_building_m5
+    domain: built_environment
+    protocol: mqtt
+    start: python3 -u /client.py
+    log: /tmp/${name}.log
+    env:
+      SLEEP_TIME: '5'
+      SLEEP_TIME_SD: '1'
+  nurse_stress:
+    image: myzoo/nurse_stress
+    domain: human_centric
+    protocol: mqtt
+    start: python3 -u /client.py
+    log: /tmp/${name}.log
+    env:
+      SLEEP_TIME: '5'
+      SLEEP_TIME_SD: '1'
+  urban_sensor:
+    image: myzoo/urban_sensor
+    domain: smart_city
+    protocol: mqtt
+    dcmd: /bin/bash
+    start: python3 -u /urban_sensor.py
+    log: /tmp/${name}.log
+    volumes:
+    - ${dataset_dir}:/data:ro
+    env:
+      TIME_SCALE: '60.0'
+    variants:
+    - TARGET_VARIABLE: CO
+      MQTT_TOPIC_PUB: city/air/co
+    - TARGET_VARIABLE: NO2
+      MQTT_TOPIC_PUB: city/air/no2
+    - TARGET_VARIABLE: 'NO'
+      MQTT_TOPIC_PUB: city/air/no
+    - TARGET_VARIABLE: NOx
+      MQTT_TOPIC_PUB: city/air/nox
+    - TARGET_VARIABLE: O3
+      MQTT_TOPIC_PUB: city/air/o3
+    - TARGET_VARIABLE: Particle
+      MQTT_TOPIC_PUB: city/air/particle
+    - TARGET_VARIABLE: PM1
+      MQTT_TOPIC_PUB: city/air/pm1
+    - TARGET_VARIABLE: PM10
+      MQTT_TOPIC_PUB: city/air/pm10
+    - TARGET_VARIABLE: PM2.5
+      MQTT_TOPIC_PUB: city/air/pm25
+    - TARGET_VARIABLE: PM 4
+      MQTT_TOPIC_PUB: city/air/pm4
+    - TARGET_VARIABLE: Internal Temperature
+      MQTT_TOPIC_PUB: building/internal/temp
+    - TARGET_VARIABLE: Internal Humidity
+      MQTT_TOPIC_PUB: building/internal/humidity
+    - TARGET_VARIABLE: Humidity
+      MQTT_TOPIC_PUB: weather/external/humidity
+    - TARGET_VARIABLE: Pressure
+      MQTT_TOPIC_PUB: weather/external/pressure
+    - TARGET_VARIABLE: Rain
+      MQTT_TOPIC_PUB: weather/external/rain
+    - TARGET_VARIABLE: Solar Radiation
+      MQTT_TOPIC_PUB: weather/external/solar
+    - TARGET_VARIABLE: Wind Speed
+      MQTT_TOPIC_PUB: weather/external/wind
+    - TARGET_VARIABLE: Battery Voltage
+      MQTT_TOPIC_PUB: metrics/battery
+    - TARGET_VARIABLE: Depth
+      MQTT_TOPIC_PUB: water/quality/depth
+    - TARGET_VARIABLE: Dissolved Oxygen
+      MQTT_TOPIC_PUB: water/quality/dissolved_oxygen
+    - TARGET_VARIABLE: Turbidity
+      MQTT_TOPIC_PUB: water/quality/turbidity
+    - TARGET_VARIABLE: Water Temperature
+      MQTT_TOPIC_PUB: water/quality/temperature
+    - TARGET_VARIABLE: Water Level
+      MQTT_TOPIC_PUB: water/level/absolute
+    - TARGET_VARIABLE: Relative Water Level
+      MQTT_TOPIC_PUB: water/level/relative
+    - TARGET_VARIABLE: Walking
+      MQTT_TOPIC_PUB: city/people/flow
+  ip_camera:
+    image: myzoo/camera
+    domain: cctv
+    protocol: rtsp
+    dcmd: /bin/bash
+    privileged: true
+    link_up: true
+    start: python3 -u /ip_camera.py
+    log: /tmp/${name}.log
+    env: {}
+  stream_consumer:
+    image: myzoo/consumer_video
+    domain: cctv
+    protocol: rtsp
+    dcmd: /bin/bash
+    privileged: true
+    link_up: true
+    start: python3 -u /consume.py
+    log: /tmp/${name}.log
+    env: {}

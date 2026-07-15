@@ -10,7 +10,7 @@ Usage: $0 --demo | --full
 
 Options:
   --demo   Build only the images required by demo_experiment.py.
-           Demo data is prepared separately with scripts/prepare_demo_data.sh.
+           Basic demo data is prepared separately with scripts/prepare_demo_data.sh.
   --full   Build all device images using the datasets stored under devices/.
 USAGE
 }
@@ -28,7 +28,7 @@ case "$MODE" in
     build_image "iotsim/certificates:latest" "devices/certificates"
     build_image "myzoo/mqtt_broker" "devices/mqtt_broker"
     build_image "myzoo/urban_sensor" "devices/urban_observatory"
-    echo "Demo images built successfully. If demo data is not ready, run ./scripts/prepare_demo_data.sh --duration 120 --clean"
+    echo "Basic demo images built successfully. If demo data is not ready, run ./scripts/prepare_demo_data.sh --duration 120 --clean"
     ;;
   --full)
     find "$PROJECT_ROOT/devices" -name "*.py" -exec chmod +x {} +

@@ -1,0 +1,548 @@
+# IoT-Zoo domain-oriented zonal topology
+#
+# Purpose:
+#   Compact Gotham-inspired topology for the current IoT-Zoo stage.
+#   The goal is not to reproduce Gotham's full scale, but to organize the
+#   existing IoT-Zoo device profiles into interpretable application domains.
+#
+# Design principles:
+#   - 6 switches, each representing a functional IoT zone.
+#   - 1 MQTT broker per zone to enable local broker traffic.
+#   - The RTSP server and video devices are isolated in a video services zone.
+#   - Links emulate different network conditions using bw, delay and loss.
+#   - Capture points are configured per zone for distributed observability.
+#
+# Suggested use:
+#   python3 run_experiment.py --topology topology_iotzoo_domain_zonal_6sw.yaml --dry-run
+#   ./scripts/run_full.sh --time 60 --output ./iot_zoo_zonal_6sw.pcap --topology topology_iotzoo_domain_zonal_6sw.yaml
+#
+# Expected output when multiple capture points are enabled:
+#   iot_zoo_zonal_6sw_s1.pcap
+#   iot_zoo_zonal_6sw_s2.pcap
+#   iot_zoo_zonal_6sw_s3.pcap
+#   iot_zoo_zonal_6sw_s4.pcap
+#   iot_zoo_zonal_6sw_s5.pcap
+#   iot_zoo_zonal_6sw_s6.pcap
+
+experiment:
+  time: 600
+  output: capture_iotzoo_domain_zonal_6sw.pcap
+
+network:
+  subnet: 10.0.0.0/24
+  nat:
+    name: nat0
+    ip: 10.0.0.254
+    switch: s1
+
+dataset_dir: devices/urban_observatory
+catalog: catalog.yaml
+
+switches:
+  - name: s1  # core / gateway / central monitoring
+  - name: s2  # smart city and air-quality sensing
+  - name: s3  # human-centric, e-health and smart-home monitoring
+  - name: s4  # industrial, building automation and agriculture
+  - name: s5  # video / RTSP services
+  - name: s6  # remote environmental and water-quality segment
+
+links:
+  # Core to smart-city zone: high-quality link.
+  - a: s1
+    b: s2
+    bw: 100
+    delay: 2ms
+    loss: 0
+
+  # Core to human-centric/home zone: high-quality link.
+  - a: s1
+    b: s3
+    bw: 100
+    delay: 2ms
+    loss: 0
+
+  # Core to industrial/building/agriculture zone: moderate edge link.
+  - a: s1
+    b: s4
+    bw: 50
+    delay: 8ms
+    loss: 0.1
+
+  # Core to video services: constrained link to stress RTSP flows.
+  - a: s1
+    b: s5
+    bw: 20
+    delay: 15ms
+    loss: 0.3
+
+  # Core to remote environmental/water segment: degraded edge link.
+  - a: s1
+    b: s6
+    bw: 10
+    delay: 35ms
+    loss: 1.0
+
+capture:
+  # Baseline distributed capture: one PCAP per zone.
+  # For a lighter publication run, use only s1, s2, s4 and s6.
+  points:
+    - s1
+    - s2
+    - s3
+    - s4
+    - s5
+    - s6
+  bpf: not port 6653
+
+services:
+  - name: broker_core
+    kind: mqtt_broker
+    ip: 10.0.0.100
+    switch: s1
+    image: myzoo/mqtt_broker
+    dcmd: /bin/bash
+    boot:
+      - /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf -d &
+
+  - name: broker_city
+    kind: mqtt_broker
+    ip: 10.0.0.101
+    switch: s2
+    image: myzoo/mqtt_broker
+    dcmd: /bin/bash
+    boot:
+      - /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf -d &
+
+  - name: broker_health_home
+    kind: mqtt_broker
+    ip: 10.0.0.102
+    switch: s3
+    image: myzoo/mqtt_broker
+    dcmd: /bin/bash
+    boot:
+      - /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf -d &
+
+  - name: broker_industrial
+    kind: mqtt_broker
+    ip: 10.0.0.103
+    switch: s4
+    image: myzoo/mqtt_broker
+    dcmd: /bin/bash
+    boot:
+      - /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf -d &
+
+  - name: broker_video
+    kind: mqtt_broker
+    ip: 10.0.0.104
+    switch: s5
+    image: myzoo/mqtt_broker
+    dcmd: /bin/bash
+    boot:
+      - /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf -d &
+
+  - name: broker_remote
+    kind: mqtt_broker
+    ip: 10.0.0.105
+    switch: s6
+    image: myzoo/mqtt_broker
+    dcmd: /bin/bash
+    boot:
+      - /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf -d &
+
+  - name: v_srv
+    kind: rtsp_server
+    ip: 10.0.0.20
+    switch: s5
+    image: myzoo/server_video
+    privileged: true
+    dcmd: /bin/bash
+    link_up: true
+    boot:
+      - /mediamtx /mediamtx.yml > /tmp/v_srv.log 2>&1 &
+    boot_delay: 3
+
+profiles:
+  # -------------------------------------------------------------------------
+  # s2: Smart city and air-quality sensing
+  # -------------------------------------------------------------------------
+  - name: air
+    template: air_quality
+    ip: 10.0.0.6
+    switch: s2
+    broker: broker_city
+
+  - name: sl_gw
+    template: smart_lighting
+    ip: 10.0.0.8
+    switch: s2
+    env:
+      MQTT_TOPIC_PUB: city/lighting
+    broker: broker_city
+
+  - name: es_gw
+    template: environmental_sensors
+    ip: 10.0.0.9
+    switch: s2
+    env:
+      MQTT_TOPIC_PUB: school/environmental_sensors
+    broker: broker_city
+
+  - name: gw_co
+    template: urban_sensor
+    ip: 10.0.0.50
+    switch: s2
+    env:
+      TARGET_VARIABLE: CO
+      MQTT_TOPIC_PUB: city/air/co
+    broker: broker_city
+
+  - name: gw_no2
+    template: urban_sensor
+    ip: 10.0.0.51
+    switch: s2
+    env:
+      TARGET_VARIABLE: NO2
+      MQTT_TOPIC_PUB: city/air/no2
+    broker: broker_city
+
+  - name: gw_no
+    template: urban_sensor
+    ip: 10.0.0.52
+    switch: s2
+    env:
+      TARGET_VARIABLE: 'NO'
+      MQTT_TOPIC_PUB: city/air/no
+    broker: broker_city
+
+  - name: gw_nox
+    template: urban_sensor
+    ip: 10.0.0.53
+    switch: s2
+    env:
+      TARGET_VARIABLE: NOx
+      MQTT_TOPIC_PUB: city/air/nox
+    broker: broker_city
+
+  - name: gw_o3
+    template: urban_sensor
+    ip: 10.0.0.54
+    switch: s2
+    env:
+      TARGET_VARIABLE: O3
+      MQTT_TOPIC_PUB: city/air/o3
+    broker: broker_city
+
+  - name: gw_part
+    template: urban_sensor
+    ip: 10.0.0.55
+    switch: s2
+    env:
+      TARGET_VARIABLE: Particle
+      MQTT_TOPIC_PUB: city/air/particle
+    broker: broker_city
+
+  - name: gw_pm1
+    template: urban_sensor
+    ip: 10.0.0.56
+    switch: s2
+    env:
+      TARGET_VARIABLE: PM1
+      MQTT_TOPIC_PUB: city/air/pm1
+    broker: broker_city
+
+  - name: gw_pm10
+    template: urban_sensor
+    ip: 10.0.0.57
+    switch: s2
+    env:
+      TARGET_VARIABLE: PM10
+      MQTT_TOPIC_PUB: city/air/pm10
+    broker: broker_city
+
+  - name: gw_pm25
+    template: urban_sensor
+    ip: 10.0.0.58
+    switch: s2
+    env:
+      TARGET_VARIABLE: PM2.5
+      MQTT_TOPIC_PUB: city/air/pm25
+    broker: broker_city
+
+  - name: gw_pm4
+    template: urban_sensor
+    ip: 10.0.0.59
+    switch: s2
+    env:
+      TARGET_VARIABLE: PM 4
+      MQTT_TOPIC_PUB: city/air/pm4
+    broker: broker_city
+
+  - name: gw_people
+    template: urban_sensor
+    ip: 10.0.0.74
+    switch: s2
+    env:
+      TARGET_VARIABLE: Walking
+      MQTT_TOPIC_PUB: city/people/flow
+    broker: broker_city
+
+  # -------------------------------------------------------------------------
+  # s3: Human-centric, e-health and smart-home monitoring
+  # -------------------------------------------------------------------------
+  - name: patient1
+    template: mhealth
+    ip: 10.0.0.7
+    switch: s3
+    env:
+      MQTT_TOPIC_PUB: hospital/patients
+      SUBJECT_ID: '1'
+      SPEED_FACTOR: '0.02'
+    broker: broker_health_home
+
+  - name: ns_gw
+    template: nurse_stress
+    ip: 10.0.0.17
+    switch: s3
+    env:
+      MQTT_TOPIC_PUB: hospital/nurse_stress
+    broker: broker_health_home
+
+  - name: domotic
+    template: domotic_monitor
+    ip: 10.0.0.4
+    switch: s3
+    broker: broker_health_home
+
+  # -------------------------------------------------------------------------
+  # s4: Industrial, building automation and agriculture
+  # -------------------------------------------------------------------------
+  - name: predio
+    template: building_monitor
+    ip: 10.0.0.2
+    switch: s4
+    env:
+      MQTT_TOPIC_PUB: building
+    broker: broker_industrial
+
+  - name: cooler
+    template: cooler_motor
+    ip: 10.0.0.3
+    switch: s4
+    broker: broker_industrial
+
+  - name: predictive
+    template: predictive_maintenance
+    ip: 10.0.0.5
+    switch: s4
+    broker: broker_industrial
+
+  - name: aq_gw
+    template: aquaponics_fish_pond
+    ip: 10.0.0.10
+    switch: s4
+    env:
+      MQTT_TOPIC_PUB: aquaponics/fish_pond
+    broker: broker_industrial
+
+  - name: el_gw
+    template: elevator_predictive_maintenance
+    ip: 10.0.0.11
+    switch: s4
+    env:
+      MQTT_TOPIC_PUB: building/elevator
+    broker: broker_industrial
+
+  - name: pm_gw
+    template: predictive_maintenance
+    ip: 10.0.0.12
+    switch: s4
+    dcmd: null
+    log: /tmp/pm_gw.log
+    env:
+      MQTT_TOPIC_PUB: industrial/predictive_maintenance
+      SLEEP_TIME_SD: '1'
+    broker: broker_industrial
+
+  - name: te_gw
+    template: traction_elevator
+    ip: 10.0.0.13
+    switch: s4
+    env:
+      MQTT_TOPIC_PUB: elevator/traction/predictive_maintenance
+    broker: broker_industrial
+
+  - name: gr_gw
+    template: greenhouse_sensor
+    ip: 10.0.0.14
+    switch: s4
+    env:
+      MQTT_TOPIC_PUB: greenhouse/env
+    broker: broker_industrial
+
+  - name: far_gw
+    template: farming_sensor
+    ip: 10.0.0.15
+    switch: s4
+    env:
+      MQTT_TOPIC_PUB: farming_sensor/env
+    broker: broker_industrial
+
+  - name: sb_gw
+    template: smart_building_m5
+    ip: 10.0.0.16
+    switch: s4
+    env:
+      MQTT_TOPIC_PUB: building/m5
+    broker: broker_industrial
+
+  - name: gw_b_temp
+    template: urban_sensor
+    ip: 10.0.0.60
+    switch: s4
+    env:
+      TARGET_VARIABLE: Internal Temperature
+      MQTT_TOPIC_PUB: building/internal/temp
+    broker: broker_industrial
+
+  - name: gw_b_hum
+    template: urban_sensor
+    ip: 10.0.0.61
+    switch: s4
+    env:
+      TARGET_VARIABLE: Internal Humidity
+      MQTT_TOPIC_PUB: building/internal/humidity
+    broker: broker_industrial
+
+  # -------------------------------------------------------------------------
+  # s5: Video / RTSP services
+  # -------------------------------------------------------------------------
+  - name: v_cam
+    template: ip_camera
+    ip: 10.0.0.21
+    switch: s5
+    env:
+      STREAM_SERVER_ADDR: 10.0.0.20
+      STREAM_SERVER_PORT: '8554'
+      STREAM_NAME: live
+      VIDEO_FILE: /video.mp4
+
+  - name: v_cons
+    template: stream_consumer
+    ip: 10.0.0.22
+    switch: s5
+    env:
+      STREAM_SERVER_ADDR: 10.0.0.20
+      STREAM_SERVER_PORT: '8554'
+      STREAM_NAME: live
+      ACTIVE_TIME: ${time}
+
+  # -------------------------------------------------------------------------
+  # s6: Remote environmental and water-quality segment
+  # -------------------------------------------------------------------------
+  - name: gw_w_hum
+    template: urban_sensor
+    ip: 10.0.0.62
+    switch: s6
+    env:
+      TARGET_VARIABLE: Humidity
+      MQTT_TOPIC_PUB: weather/external/humidity
+    broker: broker_remote
+
+  - name: gw_w_press
+    template: urban_sensor
+    ip: 10.0.0.63
+    switch: s6
+    env:
+      TARGET_VARIABLE: Pressure
+      MQTT_TOPIC_PUB: weather/external/pressure
+    broker: broker_remote
+
+  - name: gw_w_rain
+    template: urban_sensor
+    ip: 10.0.0.64
+    switch: s6
+    env:
+      TARGET_VARIABLE: Rain
+      MQTT_TOPIC_PUB: weather/external/rain
+    broker: broker_remote
+
+  - name: gw_w_solar
+    template: urban_sensor
+    ip: 10.0.0.65
+    switch: s6
+    env:
+      TARGET_VARIABLE: Solar Radiation
+      MQTT_TOPIC_PUB: weather/external/solar
+    broker: broker_remote
+
+  - name: gw_w_wind
+    template: urban_sensor
+    ip: 10.0.0.66
+    switch: s6
+    env:
+      TARGET_VARIABLE: Wind Speed
+      MQTT_TOPIC_PUB: weather/external/wind
+    broker: broker_remote
+
+  - name: gw_m_batt
+    template: urban_sensor
+    ip: 10.0.0.67
+    switch: s6
+    env:
+      TARGET_VARIABLE: Battery Voltage
+      MQTT_TOPIC_PUB: metrics/battery
+    broker: broker_remote
+
+  - name: gw_wq_dpt
+    template: urban_sensor
+    ip: 10.0.0.68
+    switch: s6
+    env:
+      TARGET_VARIABLE: Depth
+      MQTT_TOPIC_PUB: water/quality/depth
+    broker: broker_remote
+
+  - name: gw_wq_do
+    template: urban_sensor
+    ip: 10.0.0.69
+    switch: s6
+    env:
+      TARGET_VARIABLE: Dissolved Oxygen
+      MQTT_TOPIC_PUB: water/quality/dissolved_oxygen
+    broker: broker_remote
+
+  - name: gw_wq_turb
+    template: urban_sensor
+    ip: 10.0.0.70
+    switch: s6
+    env:
+      TARGET_VARIABLE: Turbidity
+      MQTT_TOPIC_PUB: water/quality/turbidity
+    broker: broker_remote
+
+  - name: gw_wq_temp
+    template: urban_sensor
+    ip: 10.0.0.71
+    switch: s6
+    env:
+      TARGET_VARIABLE: Water Temperature
+      MQTT_TOPIC_PUB: water/quality/temperature
+    broker: broker_remote
+
+  - name: gw_wl_abs
+    template: urban_sensor
+    ip: 10.0.0.72
+    switch: s6
+    env:
+      TARGET_VARIABLE: Water Level
+      MQTT_TOPIC_PUB: water/level/absolute
+    broker: broker_remote
+
+  - name: gw_wl_rel
+    template: urban_sensor
+    ip: 10.0.0.73
+    switch: s6
+    env:
+      TARGET_VARIABLE: Relative Water Level
+      MQTT_TOPIC_PUB: water/level/relative
+    broker: broker_remote

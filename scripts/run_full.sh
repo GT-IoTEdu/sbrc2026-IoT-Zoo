@@ -4,7 +4,17 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTAINERNET_PATH="${CONTAINERNET_PATH:-${HOME}/containernet}"
 
-if [[ "${EUID}" -ne 0 ]]; then
+# Dry-run/help do not require root. Real Containernet execution does.
+NEEDS_ROOT=1
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run|-h|--help)
+      NEEDS_ROOT=0
+      ;;
+  esac
+done
+
+if [[ "$NEEDS_ROOT" -eq 1 && "${EUID}" -ne 0 ]]; then
   exec sudo -E bash "$0" "$@"
 fi
 
@@ -13,26 +23,37 @@ if [[ -n "${SUDO_USER:-}" && "$CONTAINERNET_PATH" == "/root/containernet" ]]; th
   CONTAINERNET_PATH="/home/${SUDO_USER}/containernet"
 fi
 
-TIME=600
+# Track output for ownership restoration after sudo execution.
 OUTPUT="/tmp/iot_zoo_full.pcap"
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -t|--time)
-      TIME="$2"; shift 2 ;;
+ARGS=("$@")
+i=0
+while [[ $i -lt ${#ARGS[@]} ]]; do
+  case "${ARGS[$i]}" in
     -o|--output)
-      OUTPUT="$2"; shift 2 ;;
-    -h|--help)
-      echo "Usage: $0 [--time seconds] [--output /tmp/file.pcap]"; exit 0 ;;
+      if [[ $((i + 1)) -lt ${#ARGS[@]} ]]; then
+        OUTPUT="${ARGS[$((i + 1))]}"
+      fi
+      i=$((i + 2)) ;;
+    --output=*)
+      OUTPUT="${ARGS[$i]#--output=}"; i=$((i + 1)) ;;
     *)
-      echo "Unknown argument: $1" >&2; exit 1 ;;
+      i=$((i + 1)) ;;
   esac
 done
 
 cd "$PROJECT_ROOT"
-PYTHONPATH="$CONTAINERNET_PATH" python3 run_experiment.py --time "$TIME" --output "$OUTPUT"
+PYTHONPATH="$CONTAINERNET_PATH" python3 run_experiment.py "$@"
 
-echo "Full topology finished. Output: $OUTPUT"
-if [[ -n "${SUDO_USER:-}" && -f "$OUTPUT" ]]; then
-  chown "${SUDO_USER}:${SUDO_USER}" "$OUTPUT" || true
+if [[ -n "${SUDO_USER:-}" ]]; then
+  # Single capture uses OUTPUT directly. Multi-point capture appends _<capture-point> before the extension.
+  if [[ -f "$OUTPUT" ]]; then
+    chown "${SUDO_USER}:${SUDO_USER}" "$OUTPUT" || true
+  fi
+  stem="${OUTPUT%.*}"
+  ext="${OUTPUT##*.}"
+  if [[ "$stem" != "$OUTPUT" ]]; then
+    for f in "${stem}"_*."${ext}"; do
+      [[ -e "$f" ]] && chown "${SUDO_USER}:${SUDO_USER}" "$f" || true
+    done
+  fi
 fi

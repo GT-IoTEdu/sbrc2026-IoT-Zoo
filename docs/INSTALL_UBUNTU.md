@@ -1,75 +1,54 @@
-# Installing IoT-Zoo on Ubuntu Server 20.04/22.04 LTS
+# Installing IoT-Zoo on Ubuntu Server
 
-The officially recommended environments are Ubuntu Server 20.04 LTS and Ubuntu Server 22.04 LTS.
+Recommended targets:
 
-## 1. Clone the repository
+```text
+Ubuntu Server 20.04 LTS
+Ubuntu Server 22.04 LTS
+```
+
+IoT-Zoo requires Docker, Open vSwitch, Containernet/Mininet, Python 3, `tcpdump`, `xz-utils`, and several Python packages including PyYAML.
+
+## Fresh installation
 
 ```bash
 git clone <repository-url>
 cd <repository-name>
-```
-
-## 2. Enable script execution
-
-```bash
-chmod +x scripts/*.sh
-chmod +x build_images.sh
-```
-
-## 3. Install system dependencies
-
-```bash
+chmod +x scripts/*.sh build_images.sh run_experiment.py demo_experiment.py topology_loader.py
 ./scripts/install_ubuntu.sh
 ```
 
-If the installer adds your user to the Docker group, reboot the VM or log out and log in again before continuing:
+If the installer adds your user to the Docker group, reboot or close and reopen the terminal.
 
-```bash
-sudo reboot
-```
-
-## 4. Check the environment
+## Validate the environment
 
 ```bash
 ./scripts/check_environment.sh
 ```
 
-Resolve any `[FAIL]` item before running an experiment.
+This checks the host environment and also validates both the default and example configurable topologies in dry-run mode.
 
-## 5. Prepare the basic demo data
-
-The basic demo data is generated from the compressed Urban Observatory datasets already stored under `devices/urban_observatory/`.
+## Run the basic demo
 
 ```bash
 ./scripts/prepare_demo_data.sh --duration 120 --clean
-```
-
-## 6. Build basic demo images
-
-```bash
 ./scripts/build_images.sh --demo
+./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_demo.pcap
+ls -lh /tmp/iot_zoo_demo.pcap
+tcpdump -r /tmp/iot_zoo_demo.pcap -n port 1883 -c 10
 ```
 
-## 7. Run the basic demo
-
-```bash
-./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_basic_demo.pcap
-```
-
-Check the output:
-
-```bash
-ls -lh /tmp/iot_zoo_basic_demo.pcap
-tcpdump -r /tmp/iot_zoo_basic_demo.pcap -n port 1883 -c 10
-```
-
-## 8. Build and run the full topology
-
-After the basic demo works, build all images and run the full topology:
+## Run the configurable full topology
 
 ```bash
 ./scripts/build_images.sh --full
+./scripts/run_full.sh --topology topology.yaml --dry-run
 ./scripts/run_full.sh --time 600 --output /tmp/iot_zoo_full.pcap
 ```
 
-The full build requires all datasets referenced by the profile Dockerfiles to be present in their expected folders.
+## Run an example custom topology
+
+```bash
+./scripts/run_full.sh --topology topology_example_tree.yaml --dry-run
+./scripts/run_full.sh --topology topology_example_tree.yaml --time 120 --output /tmp/iot_zoo_tree.pcap
+```

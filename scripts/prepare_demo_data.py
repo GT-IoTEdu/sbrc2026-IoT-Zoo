@@ -20,7 +20,7 @@ import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import List, Optional, Sequence, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 URBAN_ROOT = PROJECT_ROOT / "devices" / "urban_observatory"
@@ -36,7 +36,7 @@ class DemoSource:
     fallback_patterns: Sequence[str] = ()
 
 
-DEMO_SOURCES: tuple[DemoSource, ...] = (
+DEMO_SOURCES: Tuple[DemoSource, ...] = (
     DemoSource(
         label="CO air-quality telemetry",
         variable="CO",
@@ -64,7 +64,7 @@ DEMO_SOURCES: tuple[DemoSource, ...] = (
 )
 
 
-def iter_data_files(root: Path) -> list[Path]:
+def iter_data_files(root: Path) -> List[Path]:
     if not root.exists():
         return []
     return sorted(
@@ -72,7 +72,7 @@ def iter_data_files(root: Path) -> list[Path]:
     )
 
 
-def score_candidate(path: Path, source: DemoSource, patterns: Sequence[str]) -> int | None:
+def score_candidate(path: Path, source: DemoSource, patterns: Sequence[str]) -> Optional[int]:
     rel = str(path.relative_to(URBAN_ROOT)).lower()
     name = path.name.lower()
     for idx, pattern in enumerate(patterns):
@@ -89,11 +89,11 @@ def score_candidate(path: Path, source: DemoSource, patterns: Sequence[str]) -> 
     return None
 
 
-def find_source_file(files: Sequence[Path], source: DemoSource) -> Path | None:
+def find_source_file(files: Sequence[Path], source: DemoSource) -> Optional[Path]:
     for pattern_group in (source.preferred_patterns, source.fallback_patterns):
         if not pattern_group:
             continue
-        scored: list[tuple[int, Path]] = []
+        scored: List[Tuple[int, Path]] = []
         for path in files:
             score = score_candidate(path, source, pattern_group)
             if score is not None:
@@ -136,7 +136,7 @@ def sample_csv(src: Path, dst: Path, rows: int) -> int:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate minimal IoT-Zoo demo data from full .csv.xz datasets.")
+    parser = argparse.ArgumentParser(description="Generate basic IoT-Zoo demo data from full .csv.xz datasets.")
     parser.add_argument("--duration", type=int, default=120, help="Intended demo duration in seconds. Default: 120.")
     parser.add_argument("--margin", type=int, default=60, help="Extra seconds used to size the sample. Default: 60.")
     parser.add_argument("--rows-per-second", type=int, default=5, help="Approximate sample density. Default: 5.")
@@ -169,7 +169,7 @@ def main() -> int:
         return 1
 
     manifest_lines = ["# Generated demo dataset manifest", "", f"Rows requested per source: {rows}", ""]
-    missing: list[DemoSource] = []
+    missing: List[DemoSource] = []
 
     for source in DEMO_SOURCES:
         src = find_source_file(files, source)
@@ -207,7 +207,7 @@ def main() -> int:
         print("\nERROR: required demo source files were not found:", file=sys.stderr)
         for source in missing:
             print(f"  - {source.label} ({source.variable})", file=sys.stderr)
-        print("\nThe full topology may still work, but the minimal demo needs these sources.", file=sys.stderr)
+        print("\nThe full topology may still work, but the basic demo needs these sources.", file=sys.stderr)
         return 1
 
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)

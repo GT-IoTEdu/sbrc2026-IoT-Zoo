@@ -1,0 +1,56 @@
+# IoT-Zoo Level-2 EXAMPLE: multi-switch tree, link impairment (TCLink), replicated
+# broker (infra), and diversity-bounded auto-generation of device profiles.
+#
+# Demonstrates:
+#   * 3 switches in a single L2 domain (s1 root, s2/s3 edge) connected via TCLink.
+#   * 2 MQTT brokers (allowed: servers MAY be replicated).
+#   * Air-quality gateways auto-generated with count + the catalog 'variants' pool
+#     (8 DISTINCT profiles). Asking for more than the pool supplies would FAIL.
+#   * CCTV behind a constrained 5 Mbit/30 ms link to stress RTSP.
+#
+# Run (dry):  python3 run_experiment.py --topology topology_example_tree.yaml --dry-run
+
+experiment: { time: 600, output: capture_tree.pcap }
+network:
+  subnet: 10.0.0.0/24
+  nat: { name: nat0, ip: 10.0.0.254, switch: s1 }
+dataset_dir: devices/urban_observatory
+catalog: catalog.yaml
+
+switches:
+  - { name: s1 }   # root / aggregation
+  - { name: s2 }   # smart-city edge
+  - { name: s3 }   # multimedia edge
+
+links:
+  - { a: s2, b: s1, bw: 100, delay: "2ms" }
+  - { a: s3, b: s1, bw: 5,   delay: "30ms", loss: 1 }   # constrained CCTV uplink
+
+capture:
+  points: [s1]
+  bpf: "not port 6653"
+
+services:
+  - { name: broker, kind: mqtt_broker, count: 2, ip: 10.0.0.100, ip_pool: 10.0.0.101-10.0.0.110,
+      image: myzoo/mqtt_broker, dcmd: "/bin/bash",
+      boot: ["/usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf -d &"] }
+  - { name: v_srv, kind: rtsp_server, ip: 10.0.0.20, image: myzoo/server_video, privileged: true,
+      switch: s3, dcmd: "/bin/bash", link_up: true,
+      boot: ["/mediamtx /mediamtx.yml > /tmp/v_srv.log 2>&1 &"], boot_delay: 3 }
+
+profiles:
+  # AUTO-GENERATED, DISTINCT: 8 air-quality gateways from the catalog variant pool.
+  - template: urban_sensor
+    name_prefix: gw_air
+    switch: s2
+    count: 8
+    ip_pool: 10.0.0.50-10.0.0.99
+
+  # A couple of explicit non-urban profiles on the edge switch
+  - { name: ns_gw, template: nurse_stress, ip: 10.0.0.17, switch: s2, env: { MQTT_TOPIC_PUB: hospital/nurse_stress } }
+
+  # CCTV behind the constrained uplink (s3)
+  - { name: v_cam,  template: ip_camera,      ip: 10.0.0.21, switch: s3,
+      env: { STREAM_SERVER_ADDR: "10.0.0.20", STREAM_SERVER_PORT: "8554", STREAM_NAME: live, VIDEO_FILE: /video.mp4 } }
+  - { name: v_cons, template: stream_consumer, ip: 10.0.0.22, switch: s3,
+      env: { STREAM_SERVER_ADDR: "10.0.0.20", STREAM_SERVER_PORT: "8554", STREAM_NAME: live, ACTIVE_TIME: "${time}" } }

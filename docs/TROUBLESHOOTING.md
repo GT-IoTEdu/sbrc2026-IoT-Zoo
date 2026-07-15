@@ -6,139 +6,118 @@ Start with:
 ./scripts/check_environment.sh
 ```
 
-Resolve `[FAIL]` items first. `[WARN]` items may be acceptable depending on the scenario.
+## Docker permission denied
 
-## Unsupported operating system
-
-IoT-Zoo is officially tested on Ubuntu Server 20.04 LTS and Ubuntu Server 22.04 LTS. Other systems may work, but are not officially supported by the installer.
-
-Use a VM if you are on Windows or macOS. WSL/WSL2 is not recommended because IoT-Zoo depends on Linux networking features, Open vSwitch, privileged namespaces, and packet capture.
-
-## Docker is not reachable
-
-Check the service:
-
-```bash
-sudo systemctl status docker
-sudo systemctl start docker
-```
-
-If your user was added to the Docker group during installation, reboot the VM or log out and log in again:
+If Docker works with `sudo` but not as your user, reboot or reload the Docker group:
 
 ```bash
 sudo reboot
-```
-
-Alternatively, you can start a new shell with the updated Docker group:
-
-```bash
+# or
 newgrp docker
 ```
 
-Then check:
+Then verify:
 
 ```bash
 groups
 docker ps
 ```
 
-You should see `docker` in the group list, and `docker ps` should run without permission errors.
+## Containernet import fails
 
-## Open vSwitch is not running
+The run scripts set `PYTHONPATH` automatically using `CONTAINERNET_PATH`, defaulting to `~/containernet`.
 
-```bash
-sudo systemctl status openvswitch-switch
-sudo systemctl start openvswitch-switch
-```
-
-## Containernet cannot be imported
-
-The run scripts set `PYTHONPATH` internally. If you installed Containernet outside the default location, set:
+Check:
 
 ```bash
-export CONTAINERNET_PATH=/path/to/containernet
-```
-
-Then retry:
-
-```bash
+ls ~/containernet
 ./scripts/check_environment.sh
 ```
 
-Manual fallback for debugging only:
+Manual debugging fallback:
 
 ```bash
-sudo -E PYTHONPATH=$CONTAINERNET_PATH python3 run_experiment.py --time 60 --output /tmp/test.pcap
+sudo -E PYTHONPATH=$HOME/containernet python3 run_experiment.py --dry-run
 ```
 
-Normal usage should go through `scripts/run_demo.sh` or `scripts/run_full.sh`.
+A real network run still requires Containernet and root privileges.
 
-## Basic demo says sample data is missing
+## PyYAML is missing
 
-Generate demo data from the compressed Urban Observatory datasets:
+The configurable topology loader requires PyYAML:
+
+```bash
+python3 -m pip install --user pyyaml
+sudo python3 -m pip install pyyaml
+```
+
+## Topology validation fails
+
+Run dry-run directly:
+
+```bash
+./scripts/run_full.sh --topology topology.yaml --dry-run
+```
+
+Common causes:
+
+- unknown `template` name in `profiles`;
+- duplicated IP address;
+- missing `ip_pool` for replicated services;
+- device profile scaled without `variants` or `vary`;
+- node attached to a switch that was not declared;
+- capture point referencing an unknown switch.
+
+## Compressed dataset is invalid
+
+If `unxz` reports that an `.xz` file has an unrecognized format, validate all compressed datasets:
+
+```bash
+find devices -name "*.xz" -print0 | while IFS= read -r -d '' f; do
+  if ! xz -t "$f" >/dev/null 2>&1; then
+    echo "INVALID: $f"
+  fi
+done
+```
+
+Replace or recompress invalid files before running the full topology.
+
+## Basic demo data not prepared
+
+Prepare it with:
 
 ```bash
 ./scripts/prepare_demo_data.sh --duration 120 --clean
 ```
 
-Then check:
-
-```bash
-find sample_data/urban_observatory -name "*.csv"
-```
-
-If the preparation script fails, verify that these source files exist under `devices/urban_observatory/`:
-
-```text
-CO dataset, for example 2025-CO.csv.xz
-NO2 dataset, for example 2025-NO2.csv.xz
-Internal Temperature dataset, usually under the building domain
-```
-
-## Docker image is missing
-
-For the basic demo:
+Then build and run:
 
 ```bash
 ./scripts/build_images.sh --demo
+./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_demo.pcap
 ```
 
-For the full topology:
+## Docker image missing
+
+Build the required images:
 
 ```bash
+./scripts/build_images.sh --demo
+# or
 ./scripts/build_images.sh --full
 ```
 
-## Full image build fails with Docker COPY errors
-
-A Docker `COPY` error usually means the dataset expected by that profile is not present in the folder referenced by its Dockerfile.
-
-Check dataset layout:
-
-```bash
-find devices -name "*.csv.xz" -o -name "*.txt.xz" -o -name "*.mp4"
-```
-
-See `docs/DATASETS.md` for expected paths.
-
 ## PCAP file is empty or missing
 
-Use `/tmp` for PCAP output because packet capture runs with elevated privileges:
+Use an output path under `/tmp` and run long enough to generate traffic:
 
 ```bash
-./scripts/run_demo.sh --time 120 --output /tmp/iot_zoo_basic_demo.pcap
-ls -lh /tmp/iot_zoo_basic_demo.pcap
+./scripts/run_full.sh --time 120 --output /tmp/iot_zoo_full.pcap
+ls -lh /tmp/iot_zoo_full.pcap
 ```
 
-Check logs:
+For MQTT traffic inspection:
 
 ```bash
-ls -lh /tmp/*iot_zoo* /tmp/demo_*.log 2>/dev/null
-```
-
-## Stale containers remain after interruption
-
-```bash
-sudo docker rm -f $(sudo docker ps -aq --filter name=mn)
-sudo mn -c
+tcpdump -r /tmp/iot_zoo_full.pcap -n port 1883 -c 10
 ```

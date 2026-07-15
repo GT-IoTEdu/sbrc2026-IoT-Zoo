@@ -1,0 +1,766 @@
+mode: l3
+experiment:
+  time: 600
+  output: capture_iotzoo_l3_segmented.pcap
+dataset_dir: devices/urban_observatory
+catalog: catalog.yaml
+switches:
+- name: sw_external
+- name: sw_infra
+- name: sw_hospital
+- name: sw_university
+- name: sw_industrial
+- name: sw_school
+- name: sw_cctv
+- name: sw_outdoor
+networks:
+- name: external
+  description: External / threat / human-user segment
+  subnet: 10.10.0.0/24
+  switch: sw_external
+  gateway: 10.10.0.1
+  link:
+    bw: 1000
+    delay: 5ms
+    jitter: 1ms
+    loss: 0
+- name: infra
+  description: Cloud / infrastructure / services segment
+  subnet: 10.20.0.0/24
+  switch: sw_infra
+  gateway: 10.20.0.1
+  routes:
+  - to: 10.30.0.0/16
+    via: 10.20.0.254
+  link:
+    bw: 1000
+    delay: 2ms
+    jitter: 0.5ms
+    loss: 0
+- name: hospital
+  description: Hospital / health IoT domain
+  subnet: 10.30.1.0/24
+  switch: sw_hospital
+  gateway: 10.30.1.1
+  link:
+    bw: 1000
+    delay: 1ms
+    jitter: 0.2ms
+    loss: 0
+- name: university
+  description: University / campus IoT domain
+  subnet: 10.30.2.0/24
+  switch: sw_university
+  gateway: 10.30.2.1
+  link:
+    bw: 1000
+    delay: 1ms
+    jitter: 0.2ms
+    loss: 0
+- name: industrial
+  description: Industrial / facilities IoT domain
+  subnet: 10.30.3.0/24
+  switch: sw_industrial
+  gateway: 10.30.3.1
+  link:
+    bw: 1000
+    delay: 1ms
+    jitter: 0.2ms
+    loss: 0
+- name: school
+  description: School IoT domain
+  subnet: 10.30.4.0/24
+  switch: sw_school
+  gateway: 10.30.4.1
+  link:
+    bw: 1000
+    delay: 1ms
+    jitter: 0.2ms
+    loss: 0
+- name: cctv
+  description: Security / CCTV / media domain
+  subnet: 10.30.5.0/24
+  switch: sw_cctv
+  gateway: 10.30.5.1
+  link:
+    bw: 1000
+    delay: 1ms
+    jitter: 0.2ms
+    loss: 0
+- name: outdoor
+  description: Outdoor / smart-city / agriculture domain
+  subnet: 10.30.6.0/24
+  switch: sw_outdoor
+  gateway: 10.30.6.1
+  link:
+    bw: 100
+    delay: 10ms
+    jitter: 2ms
+    loss: 0.1
+routers:
+- name: r_edge
+  firewall:
+    preset: edge_restricted
+    allow: []
+  interfaces:
+  - network: external
+    ip: 10.10.0.1
+    ifname: r_edge-ext
+  - network: infra
+    ip: 10.20.0.1
+    ifname: r_edge-infra
+  routes:
+  - to: 10.30.0.0/16
+    via: 10.20.0.254
+- name: r_field
+  firewall:
+    preset: field_microsegmentation
+    allow: []
+  interfaces:
+  - network: infra
+    ip: 10.20.0.254
+    ifname: r_field-infra
+  - network: hospital
+    ip: 10.30.1.1
+    ifname: r_field-hosp
+  - network: university
+    ip: 10.30.2.1
+    ifname: r_field-univ
+  - network: industrial
+    ip: 10.30.3.1
+    ifname: r_field-ind
+  - network: school
+    ip: 10.30.4.1
+    ifname: r_field-school
+  - network: cctv
+    ip: 10.30.5.1
+    ifname: r_field-cctv
+  - network: outdoor
+    ip: 10.30.6.1
+    ifname: r_field-out
+  routes:
+  - to: default
+    via: 10.20.0.1
+capture:
+  points:
+  - sw_infra
+  - sw_hospital
+  - sw_university
+  - sw_industrial
+  - sw_school
+  - sw_cctv
+  - sw_outdoor
+  - r_edge:external
+  - r_edge:infra
+  - r_field:infra
+  - r_field:hospital
+  - r_field:university
+  - r_field:industrial
+  - r_field:school
+  - r_field:cctv
+  - r_field:outdoor
+  bpf: not port 6653
+services:
+- name: attacker_node
+  kind: external_attacker
+  ip: 10.10.0.10
+  network: external
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+- name: scanner_node
+  kind: external_scanner
+  ip: 10.10.0.20
+  network: external
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+- name: benign_dashboard
+  kind: external_benign_client
+  ip: 10.10.0.30
+  network: external
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+  start: sh -c 'i=0; while true; do mosquitto_pub -h 10.20.0.100 -p 1883 -t human/dashboard/status
+    -m "dashboard_alive_$i"; i=$((i+1)); sleep 7; done'
+  log: /tmp/benign_dashboard.log
+- name: mobile_app_user
+  kind: external_benign_client
+  ip: 10.10.0.40
+  network: external
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+  start: sh -c 'i=0; while true; do mosquitto_pub -h 10.20.0.100 -p 1883 -t human/mobile_app/heartbeat
+    -m "mobile_app_alive_$i"; i=$((i+1)); sleep 11; done'
+  log: /tmp/mobile_app_user.log
+- name: external_client
+  kind: external_benign_client
+  ip: 10.10.0.50
+  network: external
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+  start: sh -c 'while true; do mosquitto_sub -h 10.20.0.100 -p 1883 -t "#" -v -C 5
+    || true; sleep 5; done'
+  log: /tmp/external_client.log
+- name: broker_core
+  kind: mqtt_broker
+  ip: 10.20.0.100
+  network: infra
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+  boot:
+  - /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf -d &
+  boot_delay: 1
+  notes: 'v10 conservative MQTT boot: local-only broker for stable domain traffic;
+    bridge disabled for this validation run.'
+  link_up: true
+- name: rtsp_server
+  kind: rtsp_server
+  ip: 10.20.0.20
+  network: infra
+  image: myzoo/server_video
+  privileged: true
+  dcmd: /bin/bash
+  link_up: true
+  boot:
+  - pkill -x mediamtx 2>/dev/null || true; /mediamtx > /tmp/rtsp_server.log 2>&1 &
+  boot_delay: 8
+- name: ids_collector
+  kind: ids_collector
+  ip: 10.20.0.200
+  network: infra
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+- name: log_mgmt
+  kind: log_management
+  ip: 10.20.0.210
+  network: infra
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+- name: broker_hospital
+  kind: mqtt_broker
+  ip: 10.30.1.100
+  network: hospital
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+  boot:
+  - 'printf ''%s\n'' ''persistence true'' ''persistence_location /mosquitto/data/''
+    ''log_dest file /mosquitto/log/mosquitto.log'' ''listener 1883'' ''allow_anonymous
+    true'' ''connection bridge_to_core'' ''clientid bridge_broker_hospital'' ''address
+    10.20.0.100:1883'' ''try_private false'' ''start_type automatic'' ''topic # out
+    0'' > /tmp/mosquitto_bridge.conf; /usr/sbin/mosquitto -c /tmp/mosquitto_bridge.conf
+    -d'
+  boot_delay: 1
+  notes: 'v10 conservative MQTT boot: local-only broker for stable domain traffic;
+    bridge disabled for this validation run.'
+  link_up: true
+- name: broker_university
+  kind: mqtt_broker
+  ip: 10.30.2.100
+  network: university
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+  boot:
+  - 'printf ''%s\n'' ''persistence true'' ''persistence_location /mosquitto/data/''
+    ''log_dest file /mosquitto/log/mosquitto.log'' ''listener 1883'' ''allow_anonymous
+    true'' ''connection bridge_to_core'' ''clientid bridge_broker_university'' ''address
+    10.20.0.100:1883'' ''try_private false'' ''start_type automatic'' ''topic # out
+    0'' > /tmp/mosquitto_bridge.conf; /usr/sbin/mosquitto -c /tmp/mosquitto_bridge.conf
+    -d'
+  boot_delay: 1
+  notes: 'v10 conservative MQTT boot: local-only broker for stable domain traffic;
+    bridge disabled for this validation run.'
+  link_up: true
+- name: broker_industrial
+  kind: mqtt_broker
+  ip: 10.30.3.100
+  network: industrial
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+  boot:
+  - 'printf ''%s\n'' ''persistence true'' ''persistence_location /mosquitto/data/''
+    ''log_dest file /mosquitto/log/mosquitto.log'' ''listener 1883'' ''allow_anonymous
+    true'' ''connection bridge_to_core'' ''clientid bridge_broker_industrial'' ''address
+    10.20.0.100:1883'' ''try_private false'' ''start_type automatic'' ''topic # out
+    0'' > /tmp/mosquitto_bridge.conf; /usr/sbin/mosquitto -c /tmp/mosquitto_bridge.conf
+    -d'
+  boot_delay: 1
+  notes: 'v10 conservative MQTT boot: local-only broker for stable domain traffic;
+    bridge disabled for this validation run.'
+  link_up: true
+- name: broker_school
+  kind: mqtt_broker
+  ip: 10.30.4.100
+  network: school
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+  boot:
+  - 'printf ''%s\n'' ''persistence true'' ''persistence_location /mosquitto/data/''
+    ''log_dest file /mosquitto/log/mosquitto.log'' ''listener 1883'' ''allow_anonymous
+    true'' ''connection bridge_to_core'' ''clientid bridge_broker_school'' ''address
+    10.20.0.100:1883'' ''try_private false'' ''start_type automatic'' ''topic # out
+    0'' > /tmp/mosquitto_bridge.conf; /usr/sbin/mosquitto -c /tmp/mosquitto_bridge.conf
+    -d'
+  boot_delay: 1
+  notes: 'v10 conservative MQTT boot: local-only broker for stable domain traffic;
+    bridge disabled for this validation run.'
+  link_up: true
+- name: broker_security
+  kind: mqtt_broker
+  ip: 10.30.5.100
+  network: cctv
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+  boot:
+  - 'printf ''%s\n'' ''persistence true'' ''persistence_location /mosquitto/data/''
+    ''log_dest file /mosquitto/log/mosquitto.log'' ''listener 1883'' ''allow_anonymous
+    true'' ''connection bridge_to_core'' ''clientid bridge_broker_security'' ''address
+    10.20.0.100:1883'' ''try_private false'' ''start_type automatic'' ''topic # out
+    0'' > /tmp/mosquitto_bridge.conf; /usr/sbin/mosquitto -c /tmp/mosquitto_bridge.conf
+    -d'
+  boot_delay: 1
+  notes: 'v10 conservative MQTT boot: local-only broker for stable domain traffic;
+    bridge disabled for this validation run.'
+  link_up: true
+- name: broker_outdoor
+  kind: mqtt_broker
+  ip: 10.30.6.100
+  network: outdoor
+  image: myzoo/mqtt_broker
+  dcmd: /bin/bash
+  boot:
+  - 'printf ''%s\n'' ''persistence true'' ''persistence_location /mosquitto/data/''
+    ''log_dest file /mosquitto/log/mosquitto.log'' ''listener 1883'' ''allow_anonymous
+    true'' ''connection bridge_to_core'' ''clientid bridge_broker_outdoor'' ''address
+    10.20.0.100:1883'' ''try_private false'' ''start_type automatic'' ''topic # out
+    0'' > /tmp/mosquitto_bridge.conf; /usr/sbin/mosquitto -c /tmp/mosquitto_bridge.conf
+    -d'
+  boot_delay: 1
+  notes: 'v10 conservative MQTT boot: local-only broker for stable domain traffic;
+    bridge disabled for this validation run.'
+  link_up: true
+profiles:
+- name: mhealth_device_1
+  template: mhealth
+  domain: hospital
+  ip: 10.30.1.11
+  network: hospital
+  broker: broker_hospital
+  env:
+    MQTT_TOPIC_PUB: hospital/mhealth/device_1
+- name: mhealth_device_2
+  template: mhealth
+  domain: hospital
+  ip: 10.30.1.12
+  network: hospital
+  broker: broker_hospital
+  env:
+    MQTT_TOPIC_PUB: hospital/mhealth/device_2
+- name: mhealth_device_3
+  template: mhealth
+  domain: hospital
+  ip: 10.30.1.13
+  network: hospital
+  broker: broker_hospital
+  env:
+    MQTT_TOPIC_PUB: hospital/mhealth/device_3
+- name: nurse_stress
+  template: nurse_stress
+  domain: hospital
+  ip: 10.30.1.20
+  network: hospital
+  broker: broker_hospital
+  env:
+    MQTT_TOPIC_PUB: hospital/nurse_stress
+- name: environmental_sensors
+  template: environmental_sensors
+  domain: hospital
+  ip: 10.30.1.30
+  network: hospital
+  broker: broker_hospital
+  env:
+    MQTT_TOPIC_PUB: hospital/environmental_sensors
+- name: smart_building_m5
+  template: smart_building_m5
+  domain: hospital
+  ip: 10.30.1.40
+  network: hospital
+  broker: broker_hospital
+  env:
+    MQTT_TOPIC_PUB: hospital/smart_building_m5
+- name: university_air_quality
+  template: air_quality
+  domain: university
+  ip: 10.30.2.10
+  network: university
+  broker: broker_university
+  env:
+    MQTT_TOPIC_PUB: university/air_quality
+- name: university_building_monitor
+  template: building_monitor
+  domain: university
+  ip: 10.30.2.11
+  network: university
+  broker: broker_university
+  env:
+    MQTT_TOPIC_PUB: university/building_monitor
+- name: university_domotic_monitor
+  template: domotic_monitor
+  domain: university
+  ip: 10.30.2.12
+  network: university
+  broker: broker_university
+  env:
+    MQTT_TOPIC_PUB: university/domotic_monitor
+- name: university_smart_lighting
+  template: smart_lighting
+  domain: university
+  ip: 10.30.2.13
+  network: university
+  broker: broker_university
+  env:
+    MQTT_TOPIC_PUB: university/smart_lighting
+- name: cooler_motor
+  template: cooler_motor
+  domain: industrial
+  ip: 10.30.3.21
+  network: industrial
+  broker: broker_industrial
+  env:
+    MQTT_TOPIC_PUB: industrial/cooler_motor
+- name: predictive_maintenance
+  template: predictive_maintenance
+  domain: industrial
+  ip: 10.30.3.22
+  network: industrial
+  broker: broker_industrial
+  env:
+    MQTT_TOPIC_PUB: industrial/predictive_maintenance
+- name: elevator_predictive_maintenance
+  template: elevator_predictive_maintenance
+  domain: industrial
+  ip: 10.30.3.23
+  network: industrial
+  broker: broker_industrial
+  env:
+    MQTT_TOPIC_PUB: industrial/elevator_predictive_maintenance
+- name: traction_elevator_predictive_maintenance
+  template: traction_elevator
+  domain: industrial
+  ip: 10.30.3.24
+  network: industrial
+  broker: broker_industrial
+  env:
+    MQTT_TOPIC_PUB: industrial/traction_elevator_predictive_maintenance
+- name: school_air_quality
+  template: air_quality
+  domain: school
+  ip: 10.30.4.10
+  network: school
+  broker: broker_school
+  env:
+    MQTT_TOPIC_PUB: school/air_quality
+- name: school_building_monitor
+  template: building_monitor
+  domain: school
+  ip: 10.30.4.11
+  network: school
+  broker: broker_school
+  env:
+    MQTT_TOPIC_PUB: school/building_monitor
+- name: school_domotic_monitor
+  template: domotic_monitor
+  domain: school
+  ip: 10.30.4.12
+  network: school
+  broker: broker_school
+  env:
+    MQTT_TOPIC_PUB: school/domotic_monitor
+- name: school_smart_lighting
+  template: smart_lighting
+  domain: school
+  ip: 10.30.4.13
+  network: school
+  broker: broker_school
+  env:
+    MQTT_TOPIC_PUB: school/smart_lighting
+- name: ip_camera_1
+  template: ip_camera
+  domain: cctv
+  ip: 10.30.5.11
+  network: cctv
+  env:
+    STREAM_SERVER_ADDR: 10.20.0.20
+    STREAM_SERVER_PORT: '8554'
+    STREAM_NAME: cam1
+  start: bash -lc 'ip route replace default via 10.30.5.1 2>/dev/null || true; ip
+    route replace 10.20.0.0/24 via 10.30.5.1 2>/dev/null || true; until ping -c1 -W1
+    10.20.0.20 >/dev/null 2>&1; do echo waiting_rtsp_server; sleep 2; done; sleep
+    3; while true; do ffmpeg -hide_banner -loglevel warning -re -stream_loop -1 -i
+    /video.mp4 -c copy -f rtsp -rtsp_transport tcp rtsp://10.20.0.20:8554/cam1; echo
+    publisher_exit_$?; sleep 3; done'
+  log: /tmp/ip_camera_1.log
+- name: ip_camera_2
+  template: ip_camera
+  domain: cctv
+  ip: 10.30.5.12
+  network: cctv
+  env:
+    STREAM_SERVER_ADDR: 10.20.0.20
+    STREAM_SERVER_PORT: '8554'
+    STREAM_NAME: cam2
+  start: bash -lc 'ip route replace default via 10.30.5.1 2>/dev/null || true; ip
+    route replace 10.20.0.0/24 via 10.30.5.1 2>/dev/null || true; until ping -c1 -W1
+    10.20.0.20 >/dev/null 2>&1; do echo waiting_rtsp_server; sleep 2; done; sleep
+    3; while true; do ffmpeg -hide_banner -loglevel warning -re -stream_loop -1 -i
+    /video.mp4 -c copy -f rtsp -rtsp_transport tcp rtsp://10.20.0.20:8554/cam2; echo
+    publisher_exit_$?; sleep 3; done'
+  log: /tmp/ip_camera_2.log
+- name: stream_consumer
+  template: stream_consumer
+  domain: cctv
+  ip: 10.30.5.20
+  network: cctv
+  env:
+    STREAM_SERVER_ADDR: 10.20.0.20
+    STREAM_SERVER_PORT: '8554'
+    STREAM_NAME: cam1
+  start: bash -lc 'ip route replace default via 10.30.5.1 2>/dev/null || true; ip
+    route replace 10.20.0.0/24 via 10.30.5.1 2>/dev/null || true; sleep 10; while
+    true; do timeout 35 ffmpeg -hide_banner -loglevel warning -rtsp_transport tcp
+    -i rtsp://10.20.0.20:8554/cam1 -t 25 -f null -; echo consumer_exit_$?; sleep 5;
+    done'
+  log: /tmp/stream_consumer.log
+- name: gw_co
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.10
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: CO
+    MQTT_TOPIC_PUB: outdoor/air/co
+- name: gw_no2
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.11
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: NO2
+    MQTT_TOPIC_PUB: outdoor/air/no2
+- name: gw_no
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.12
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: 'NO'
+    MQTT_TOPIC_PUB: outdoor/air/no
+- name: gw_nox
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.13
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: NOx
+    MQTT_TOPIC_PUB: outdoor/air/nox
+- name: gw_o3
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.14
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: O3
+    MQTT_TOPIC_PUB: outdoor/air/o3
+- name: gw_part
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.15
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Particle
+    MQTT_TOPIC_PUB: outdoor/air/particle
+- name: gw_pm1
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.16
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: PM1
+    MQTT_TOPIC_PUB: outdoor/air/pm1
+- name: gw_pm10
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.17
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: PM10
+    MQTT_TOPIC_PUB: outdoor/air/pm10
+- name: gw_pm25
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.18
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: PM2.5
+    MQTT_TOPIC_PUB: outdoor/air/pm25
+- name: gw_pm4
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.19
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: PM 4
+    MQTT_TOPIC_PUB: outdoor/air/pm4
+- name: gw_people
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.20
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Walking
+    MQTT_TOPIC_PUB: outdoor/people/flow
+- name: gw_w_hum
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.30
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Humidity
+    MQTT_TOPIC_PUB: outdoor/weather/humidity
+- name: gw_w_press
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.31
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Pressure
+    MQTT_TOPIC_PUB: outdoor/weather/pressure
+- name: gw_w_rain
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.32
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Rain
+    MQTT_TOPIC_PUB: outdoor/weather/rain
+- name: gw_w_solar
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.33
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Solar Radiation
+    MQTT_TOPIC_PUB: outdoor/weather/solar
+- name: gw_w_wind
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.34
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Wind Speed
+    MQTT_TOPIC_PUB: outdoor/weather/wind
+- name: gw_wq_dpt
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.35
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Depth
+    MQTT_TOPIC_PUB: outdoor/water/quality/depth
+- name: gw_wq_do
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.36
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Dissolved Oxygen
+    MQTT_TOPIC_PUB: outdoor/water/quality/dissolved_oxygen
+- name: gw_wq_turb
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.37
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Turbidity
+    MQTT_TOPIC_PUB: outdoor/water/quality/turbidity
+- name: gw_wq_temp
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.38
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Water Temperature
+    MQTT_TOPIC_PUB: outdoor/water/quality/temperature
+- name: gw_wl_abs
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.39
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Water Level
+    MQTT_TOPIC_PUB: outdoor/water/level/absolute
+- name: gw_wl_rel
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.40
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Relative Water Level
+    MQTT_TOPIC_PUB: outdoor/water/level/relative
+- name: gw_m_batt
+  template: urban_sensor
+  domain: outdoor
+  ip: 10.30.6.44
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    TARGET_VARIABLE: Battery Voltage
+    MQTT_TOPIC_PUB: outdoor/metrics/battery
+- name: aquaponics_fish_pond
+  template: aquaponics_fish_pond
+  domain: outdoor
+  ip: 10.30.6.41
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    MQTT_TOPIC_PUB: outdoor/agriculture/aquaponics_fish_pond
+- name: greenhouse_sensor
+  template: greenhouse_sensor
+  domain: outdoor
+  ip: 10.30.6.42
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    MQTT_TOPIC_PUB: outdoor/agriculture/greenhouse_sensor
+- name: farming_sensor
+  template: farming_sensor
+  domain: outdoor
+  ip: 10.30.6.43
+  network: outdoor
+  broker: broker_outdoor
+  env:
+    MQTT_TOPIC_PUB: outdoor/agriculture/farming_sensor
+metadata:
+  v10_note: 'Conservative MQTT mode: broker bridge verification disabled; field brokers
+    run local-only for stable PCAP generation. Use bridge scenario as separate experiment
+    after image-level diagnostics.'
