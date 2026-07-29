@@ -167,16 +167,25 @@ services:
   network: external
   image: myzoo/mqtt_broker
   dcmd: /bin/bash
-  notes: Disabled by default. Reserved for later adversarial scenarios. Use the optional attack-smoke topology to generate
-    non-exploitative boundary-denied TCP connection attempts.
+  notes: OPTIONAL SAFE SMOKE enabled in this topology. Generates non-exploitative reachability/connection-attempt traffic
+    only for boundary and capture validation; not a real attack workload.
+  start: bash -lc 'TARGETS="10.20.0.100:1883 10.20.0.20:8554"; i=0; while true; do for t in $TARGETS; do host=${t%:*}; port=${t#*:};
+    echo "[attacker_smoke] tcp_connect_attempt seq=$i target=$host port=$port"; timeout 2 bash -c "cat < /dev/tcp/${host}/${port}"
+    >/dev/null 2>&1 || true; sleep 1; done; i=$((i+1)); sleep 8; done'
+  log: /tmp/attacker_node.log
 - name: scanner_node
   kind: external_scanner
   ip: 10.10.0.20
   network: external
   image: myzoo/mqtt_broker
   dcmd: /bin/bash
-  notes: Disabled by default. Reserved for later reconnaissance scenarios. Use the optional attack-smoke topology to generate
-    non-exploitative ping/TCP reachability probes.
+  notes: OPTIONAL SAFE SMOKE enabled in this topology. Generates non-exploitative reachability/connection-attempt traffic
+    only for boundary and capture validation; not a real attack workload.
+  start: bash -lc 'HOSTS="10.20.0.1 10.20.0.20 10.20.0.100 10.20.0.200 10.20.0.210"; i=0; while true; do for h in $HOSTS;
+    do echo "[scanner_smoke] probe seq=$i target=$h"; ping -c1 -W1 $h >/dev/null 2>&1 || true; timeout 2 bash -c "cat < /dev/tcp/${h}/1883"
+    >/dev/null 2>&1 || true; timeout 2 bash -c "cat < /dev/tcp/${h}/8554" >/dev/null 2>&1 || true; sleep 1; done; i=$((i+1));
+    sleep 10; done'
+  log: /tmp/scanner_node.log
 - name: benign_dashboard
   kind: external_benign_client
   ip: 10.10.0.30
@@ -765,10 +774,10 @@ profiles:
   env:
     MQTT_TOPIC_PUB: outdoor/agriculture/farming_sensor
 metadata:
-  version: v12_benign_external_clients
+  version: v12_attack_smoke_optional
   based_on: v11_stable_broker_routes
-  description: Adds richer benign external dashboard/mobile/client behavior while preserving v11 stable L3 routing, broker
-    boot, bridge behavior and interface-level capture.
+  description: Optional smoke-test topology enabling attacker_node/scanner_node safe boundary traffic. Use only after validating
+    the benign v12 topology.
   external_benign_clients:
     benign_dashboard: Long-lived subscriber for all field-domain topics plus periodic status/summary requests.
     mobile_app_user: Intermittent/polling subscriber for selected hospital, school and outdoor topics plus heartbeat/latest
