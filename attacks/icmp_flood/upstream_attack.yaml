@@ -1,0 +1,28 @@
+id: dos_icmp_flood
+name: ICMP Flood
+category: 6) Denial of Service and Impact
+subcategory: 6.1 Network/transport floods (ICMP/TCP/UDP)
+description: ICMP packet flood.
+image: attack-icmp-flood:latest
+container_name: attack-icmp-flood
+max_runtime_s: 10
+target_services:
+- target IP service
+target_mapping:
+  target: target_ip
+details_warning: This attack can generate a large amount of data if captured until its automatic completion. For demonstrations, use less than 5 seconds of execution.
+mitre:
+- https://attack.mitre.org/tactics/TA0040/
+- https://attack.mitre.org/techniques/T1498/
+- https://attack.mitre.org/techniques/T1498/001/
+params:
+- key: target_ip
+  label: Target IP address or FQDN
+  kind: ip
+  placeholder: __HOST_IP__
+intensity_params:
+- key: duration_s
+- key: count
+- key: rate_pps
+- key: payload_size
+  default: 1200

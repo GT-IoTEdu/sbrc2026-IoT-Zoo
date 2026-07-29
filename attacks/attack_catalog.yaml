@@ -1,0 +1,206 @@
+# IoT-Zoo attack catalog.
+# Imported/adapted from AttackZoo SBSEG26. Only attacks compatible with the
+# current L3/MQTT/RTSP IoT-Zoo topology are listed here.
+
+mqtt_publisher_flood:
+  image: myzoo/attack_mqtt_publisher_flood
+  description: MQTT publish flood against a broker.
+  category: mqtt
+  default_network: external
+  default_target: broker_core
+  default_target_port: 1883
+  args: [target_ip, target_port]
+  privileged: false
+  allow_through_edge: true
+  default_start_s: 35
+  default_duration_s: 20
+  params:
+    count: 300
+    delay_ms: 10
+    payload_size: 128
+    qos: 0
+    topic_prefix: attack/mqtt_publisher_flood
+
+mqtt_lwt_abuse:
+  image: myzoo/attack_mqtt_lwt_abuse
+  description: Abuse MQTT Last Will and Testament to publish false critical failure alerts.
+  category: mqtt
+  default_network: external
+  default_target: broker_core
+  default_target_port: 1883
+  args: [target_ip, target_port]
+  privileged: false
+  allow_through_edge: true
+  default_start_s: 35
+  default_duration_s: 20
+  params:
+    count: 30
+    delay_ms: 100
+
+mqtt_qos_amplification:
+  image: myzoo/attack_mqtt_qos_amplification
+  description: Controlled MQTT QoS 2 state/traffic amplification.
+  category: mqtt
+  default_network: external
+  default_target: broker_core
+  default_target_port: 1883
+  args: [target_ip, target_port]
+  privileged: false
+  allow_through_edge: true
+  default_start_s: 35
+  default_duration_s: 20
+  params:
+    threads: 8
+    count: 20
+    delay_ms: 20
+
+ping_sweep:
+  image: myzoo/attack_ping_sweep
+  description: ICMP host discovery sweep.
+  category: reconnaissance
+  default_network: external
+  default_target_net: 10.20.0.0/24
+  args: [target_net]
+  privileged: true
+  allow_through_edge: true
+  default_start_s: 20
+  default_duration_s: 15
+  params:
+    timeout_ms: 100
+    retries: 1
+
+port_scanner_tcp:
+  image: myzoo/attack_port_scanner_tcp
+  description: Controlled TCP port scan of infrastructure targets.
+  category: reconnaissance
+  default_network: external
+  default_targets: [broker_core, rtsp_server, ids_collector, log_mgmt]
+  args: [targets]
+  privileged: true
+  allow_through_edge: true
+  default_start_s: 25
+  default_duration_s: 30
+  params:
+    ports: [1883, 8554, 80, 443]
+    timing: T3
+    max_retries: 1
+    host_timeout: 20s
+
+port_scanner_udp:
+  image: myzoo/attack_port_scanner_udp
+  description: Controlled UDP port scan of selected infrastructure targets.
+  category: reconnaissance
+  default_network: external
+  default_targets: [broker_core, rtsp_server, ids_collector, log_mgmt]
+  args: [targets]
+  privileged: true
+  allow_through_edge: true
+  default_start_s: 25
+  default_duration_s: 30
+  params:
+    ports: [53, 123, 161, 5683]
+    timing: T3
+    max_retries: 1
+    host_timeout: 20s
+
+syn_flood:
+  image: myzoo/attack_syn_flood
+  description: Controlled TCP SYN flood against a selected service.
+  category: transport_dos
+  default_network: external
+  default_target: broker_core
+  default_target_port: 1883
+  args: [target_ip, target_port]
+  privileged: true
+  allow_through_edge: true
+  default_start_s: 45
+  default_duration_s: 5
+  params:
+    count: 200
+    rate_pps: 50
+    payload_size: 0
+    delay_ms: 0
+
+icmp_flood:
+  image: myzoo/attack_icmp_flood
+  description: Controlled ICMP flood against a selected host.
+  category: transport_dos
+  default_network: external
+  default_target: broker_core
+  args: [target_ip]
+  privileged: true
+  allow_through_edge: true
+  default_start_s: 45
+  default_duration_s: 5
+  params:
+    count: 200
+    rate_pps: 50
+    payload_size: 256
+
+udp_flood:
+  image: myzoo/attack_udp_flood
+  description: Controlled UDP flood against a selected service/port.
+  category: transport_dos
+  default_network: external
+  default_target: rtsp_server
+  default_target_port: 8554
+  args: [target_ip, target_port]
+  privileged: true
+  allow_through_edge: true
+  default_start_s: 45
+  default_duration_s: 5
+  params:
+    count: 200
+    rate_pps: 50
+    payload_size: 64
+
+fin_flood:
+  image: myzoo/attack_fin_flood
+  description: Controlled TCP FIN flag flood.
+  category: transport_dos
+  default_network: external
+  default_target: broker_core
+  default_target_port: 1883
+  args: [target_ip, target_port]
+  privileged: true
+  allow_through_edge: true
+  default_start_s: 45
+  default_duration_s: 5
+  params:
+    count: 200
+    rate_pps: 50
+    payload_size: 0
+
+rst_flood:
+  image: myzoo/attack_rst_flood
+  description: Controlled TCP RST flag flood.
+  category: transport_dos
+  default_network: external
+  default_target: broker_core
+  default_target_port: 1883
+  args: [target_ip, target_port]
+  privileged: true
+  allow_through_edge: true
+  default_start_s: 45
+  default_duration_s: 5
+  params:
+    count: 200
+    rate_pps: 50
+    payload_size: 0
+
+psh_flood:
+  image: myzoo/attack_psh_flood
+  description: Controlled TCP PSH flag flood.
+  category: transport_dos
+  default_network: external
+  default_target: broker_core
+  default_target_port: 1883
+  args: [target_ip, target_port]
+  privileged: true
+  allow_through_edge: true
+  default_start_s: 45
+  default_duration_s: 5
+  params:
+    count: 200
+    rate_pps: 50
+    payload_size: 64

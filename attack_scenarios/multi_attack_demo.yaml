@@ -1,0 +1,35 @@
+scenario:
+  name: multi_attack_demo
+  description: Example of multiple simultaneous/sequential attacks. Use after isolated attacks are validated.
+  default_network: external
+  ip_start: 10.10.0.60
+
+attacks:
+  - name: atk_ping_sweep_infra
+    type: ping_sweep
+    enabled: true
+    target_net: 10.20.0.0/24
+    start_s: 20
+    duration_s: 15
+
+  - name: atk_tcp_scan_infra_services
+    type: port_scanner_tcp
+    enabled: true
+    targets: [broker_core, rtsp_server, ids_collector, log_mgmt]
+    start_s: 25
+    duration_s: 25
+    params:
+      ports: [1883, 8554, 80, 443]
+
+  - name: atk_mqtt_publisher_flood_core
+    type: mqtt_publisher_flood
+    enabled: true
+    target: broker_core
+    target_port: 1883
+    start_s: 45
+    duration_s: 20
+    params:
+      count: 400
+      delay_ms: 10
+      payload_size: 128
+      topic_prefix: attack/multi_demo/mqtt_publisher_flood

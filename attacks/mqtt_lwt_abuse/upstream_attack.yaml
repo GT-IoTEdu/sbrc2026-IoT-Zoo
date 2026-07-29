@@ -1,0 +1,33 @@
+id: iot_mqtt_lwt_abuse
+name: MQTT LWT Abuse
+category: 7) IoT
+subcategory: 7.1 IoT Protocols / MQTT
+description: Abuse of the MQTT Last Will and Testament mechanism to force critical publications or false alarms on sensitive topics.
+image: attack-mqtt-lwt-abuse:latest
+container_name: attack-mqtt-lwt-abuse
+max_runtime_s: 10
+target_services:
+- mqtt-broker
+target_mapping:
+  target: target_ip
+  port: target_port
+mitre:
+- https://attack.mitre.org/tactics/TA0040/
+- https://attack.mitre.org/techniques/T1565/
+- https://attack.mitre.org/techniques/T1565/001/
+- https://attack.mitre.org/techniques/T1565/002/
+params:
+- key: target_ip
+  label: Target IP address or FQDN
+  kind: ip
+  placeholder: __HOST_IP__
+- key: target_port
+  label: Target port
+  kind: port
+  placeholder: '1883'
+  default: 1883
+intensity_params:
+- key: count
+  default: 50
+- key: delay_ms
+  default: 100

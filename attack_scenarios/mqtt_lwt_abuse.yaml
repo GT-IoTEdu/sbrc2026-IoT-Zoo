@@ -1,0 +1,17 @@
+scenario:
+  name: mqtt_lwt_abuse_external
+  description: External clients abuse MQTT LWT to create false failure alerts on broker_core.
+  default_network: external
+  ip_start: 10.10.0.60
+
+attacks:
+  - name: atk_mqtt_lwt_abuse_core
+    type: mqtt_lwt_abuse
+    enabled: true
+    target: broker_core
+    target_port: 1883
+    start_s: 35
+    duration_s: 20
+    params:
+      count: 40
+      delay_ms: 100

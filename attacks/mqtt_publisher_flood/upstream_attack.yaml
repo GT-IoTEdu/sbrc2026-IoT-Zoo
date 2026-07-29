@@ -1,0 +1,32 @@
+id: iot_mqtt_publisher
+name: MQTT Publisher Flood
+category: 7) IoT
+subcategory: 7.1 IoT Protocols / MQTT
+description: MQTT publish flood to evaluate broker availability and behavior under load.
+image: attack-mqtt-publisher:latest
+container_name: attack-mqtt-publisher
+max_runtime_s: 10
+target_services:
+- mqtt-broker
+target_mapping:
+  target: target_ip
+  port: target_port
+mitre:
+- https://attack.mitre.org/tactics/TA0040/
+- https://attack.mitre.org/techniques/T1499/
+- https://attack.mitre.org/techniques/T1499/002/
+params:
+- key: target_ip
+  label: Target IP address or FQDN
+  kind: ip
+  placeholder: __HOST_IP__
+- key: target_port
+  label: Target port
+  kind: port
+  placeholder: '1883'
+  default: 1883
+intensity_params:
+- key: count
+  default: 1000
+- key: delay_ms
+- key: payload_size

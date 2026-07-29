@@ -1,0 +1,77 @@
+scenario:
+  name: external_transport_floods_low_rate
+  description: Low-rate transport/network DoS examples. Staggered starts keep PCAPs small and avoid destabilizing the benign baseline.
+  default_network: external
+  ip_start: 10.10.0.60
+
+attacks:
+  - name: atk_syn_flood_core_mqtt
+    type: syn_flood
+    enabled: true
+    target: broker_core
+    target_port: 1883
+    start_s: 40
+    duration_s: 5
+    params:
+      count: 200
+      rate_pps: 50
+      payload_size: 0
+
+  - name: atk_icmp_flood_core
+    type: icmp_flood
+    enabled: true
+    target: broker_core
+    start_s: 52
+    duration_s: 5
+    params:
+      count: 200
+      rate_pps: 50
+      payload_size: 256
+
+  - name: atk_udp_flood_rtsp
+    type: udp_flood
+    enabled: true
+    target: rtsp_server
+    target_port: 8554
+    start_s: 64
+    duration_s: 5
+    params:
+      count: 200
+      rate_pps: 50
+      payload_size: 64
+
+  - name: atk_fin_flood_core_mqtt
+    type: fin_flood
+    enabled: true
+    target: broker_core
+    target_port: 1883
+    start_s: 76
+    duration_s: 5
+    params:
+      count: 120
+      rate_pps: 40
+      payload_size: 0
+
+  - name: atk_rst_flood_core_mqtt
+    type: rst_flood
+    enabled: true
+    target: broker_core
+    target_port: 1883
+    start_s: 88
+    duration_s: 5
+    params:
+      count: 120
+      rate_pps: 40
+      payload_size: 0
+
+  - name: atk_psh_flood_core_mqtt
+    type: psh_flood
+    enabled: true
+    target: broker_core
+    target_port: 1883
+    start_s: 100
+    duration_s: 5
+    params:
+      count: 120
+      rate_pps: 40
+      payload_size: 64

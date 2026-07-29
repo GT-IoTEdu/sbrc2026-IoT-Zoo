@@ -1,0 +1,24 @@
+id: recon_ping_sweep
+name: Ping Sweep
+category: 1) Reconnaissance and Discovery
+subcategory: 1.1 Network-level host discovery
+description: ICMP sweep for host discovery.
+image: attack-ping-sweep:latest
+container_name: attack-ping-sweep
+max_runtime_s: 10
+target_services:
+- local network
+target_mapping:
+  target: target_net
+mitre:
+- https://attack.mitre.org/tactics/TA0043/
+- https://attack.mitre.org/tactics/TA0007/
+- https://attack.mitre.org/techniques/T1590/
+- https://attack.mitre.org/techniques/T1595/
+- https://attack.mitre.org/techniques/T1595/001/
+- https://attack.mitre.org/techniques/T1018/
+params:
+- key: target_net
+  label: Target network
+  kind: cidr
+  placeholder: 192.168.0.0/24

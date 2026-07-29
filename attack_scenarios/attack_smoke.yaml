@@ -1,0 +1,28 @@
+scenario:
+  name: attack_smoke
+  description: Safe smoke test proving external malicious/recon nodes generate observable traffic.
+  default_network: external
+  ip_start: 10.10.0.60
+
+attacks:
+  - name: atk_smoke_ping_sweep
+    type: ping_sweep
+    enabled: true
+    target_net: 10.20.0.0/24
+    start_s: 10
+    duration_s: 10
+    params:
+      timeout_ms: 100
+      retries: 1
+
+  - name: atk_smoke_tcp_scan
+    type: port_scanner_tcp
+    enabled: true
+    targets: [broker_core, rtsp_server]
+    start_s: 20
+    duration_s: 15
+    params:
+      ports: [1883, 8554]
+      timing: T3
+      max_retries: 1
+      host_timeout: 15s

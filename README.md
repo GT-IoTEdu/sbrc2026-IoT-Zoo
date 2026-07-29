@@ -229,3 +229,24 @@ The L3 topology uses independent subnets for the external/user segment, infrastr
 
 See [`docs/L3_SEGMENTED_TOPOLOGY.md`](docs/L3_SEGMENTED_TOPOLOGY.md) for the exact IP plan and validation commands.
 
+
+
+## L3 attack scenarios
+
+The L3 topology can be extended at runtime with AttackZoo-compatible attack containers. The benign topology remains in `topology_l3_segmented_institutional.yaml`; attack scenarios are layered with `--attack-scenario`, for example:
+
+```bash
+sudo python3 run_experiment.py \
+  --topology topology_l3_segmented_institutional.yaml \
+  --attack-scenario attack_scenarios/mqtt_publisher_flood.yaml \
+  --time 180 \
+  --output /tmp/iot_zoo_l3.pcap
+```
+
+Build imported attack images with:
+
+```bash
+./scripts/build_images.sh --attacks
+```
+
+See `docs/ATTACK_SCENARIOS.md` for the supported attacks, scenario YAML format, and validation commands.

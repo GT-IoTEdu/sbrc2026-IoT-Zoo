@@ -1,0 +1,33 @@
+id: iot_mqtt_qos_amplification
+name: MQTT QoS 2 Amplification
+category: 7) IoT
+subcategory: 7.1 IoT Protocols / MQTT
+description: Traffic and state-load amplification on the MQTT broker through multiple QoS 2 handshakes.
+image: attack-mqtt-qos-amplification:latest
+container_name: attack-mqtt-qos-amplification
+max_runtime_s: 10
+target_services:
+- mqtt-broker
+target_mapping:
+  target: target_ip
+  port: target_port
+mitre:
+- https://attack.mitre.org/tactics/TA0040/
+- https://attack.mitre.org/techniques/T1499/
+- https://attack.mitre.org/techniques/T1499/003/
+params:
+- key: target_ip
+  label: Target IP address or FQDN
+  kind: ip
+  placeholder: __HOST_IP__
+- key: target_port
+  label: Target port
+  kind: port
+  placeholder: '1883'
+  default: 1883
+intensity_params:
+- key: threads
+  default: 2000
+- key: count
+  default: 2000
+- key: delay_ms

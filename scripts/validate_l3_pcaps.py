@@ -129,18 +129,51 @@ def tshark_count(pcap: Path, display_filter: Optional[str] = None) -> int:
     return len(out.splitlines())
 
 
+
+def tshark_filter_count(pcap: Path, display_filter: str) -> int:
+    return tshark_count(pcap, display_filter)
+
+
+def pcap_filter_rows(pcap: Path, display_filter: str, fields: List[str], max_rows: int = 100) -> List[Dict[str, str]]:
+    if not which("tshark"):
+        return []
+    cmd = ["tshark", "-r", str(pcap), "-Y", display_filter, "-T", "fields"]
+    for field in fields:
+        cmd += ["-e", field]
+    code, out, _ = run_cmd(cmd, timeout=180)
+    if code != 0 or not out:
+        return []
+    rows = []
+    for i, line in enumerate(out.splitlines()):
+        if i >= max_rows:
+            break
+        vals = line.split("\t")
+        vals += [""] * (len(fields) - len(vals))
+        rows.append(dict(zip(fields, vals)))
+    return rows
+
+
 def capinfos_packets(pcap: Path) -> int:
-    # Prefer tshark for exact packet counts. Some capinfos builds print rounded
-    # values with SI suffixes (e.g., "9 k"), which can be mis-parsed as 9.
-    if which("tshark"):
-        return tshark_count(pcap)
+    """Return packet count, handling capinfos human suffixes such as `14 k`.
+
+    Some Wireshark/capinfos builds abbreviate large counts using SI suffixes.
+    A naive integer regex would parse `14 k` as 14, which makes reports show
+    fewer total packets than protocol-specific filters.
+    """
     if which("capinfos"):
         code, out, _ = run_cmd(["capinfos", "-c", str(pcap)], timeout=30)
         if code == 0:
-            m = re.search(r"Number of packets:\s+([0-9,]+)", out)
+            m = re.search(r"Number of packets:\s+([0-9][0-9.,]*)\s*([kKmMgGtT]?)", out)
             if m:
-                return int(m.group(1).replace(",", ""))
-    return -1
+                raw = m.group(1).replace(",", "")
+                suffix = m.group(2).lower()
+                try:
+                    value = float(raw)
+                    multiplier = {"": 1, "k": 1000, "m": 1000000, "g": 1000000000, "t": 1000000000000}.get(suffix, 1)
+                    return int(value * multiplier)
+                except ValueError:
+                    pass
+    return tshark_count(pcap)
 
 
 def unique_ip_count(pcap: Path, field: str) -> int:
@@ -211,6 +244,18 @@ def summarize_capture(pcap_dir: Path, prefix: str, capture: str) -> CaptureSumma
     summary.rtsp_packets = tshark_count(p, "rtsp")
     summary.port_1883_packets = tshark_count(p, "tcp.port == 1883")
     summary.port_8554_packets = tshark_count(p, "tcp.port == 8554")
+    # If capinfos returned a human-abbreviated or otherwise inconsistent count,
+    # fall back to tshark's exact frame count.
+    derived_min = max(
+        summary.tcp_packets, summary.udp_packets, summary.icmp_packets, summary.arp_packets,
+        summary.mqtt_packets, summary.mqtt_publish_packets, summary.rtsp_packets,
+        summary.port_1883_packets, summary.port_8554_packets,
+    )
+    if summary.packets >= 0 and derived_min > summary.packets and which("tshark"):
+        exact_packets = tshark_count(p)
+        if exact_packets >= derived_min:
+            summary.packets = exact_packets
+
     summary.unique_src_ips = unique_ip_count(p, "ip.src")
     summary.unique_dst_ips = unique_ip_count(p, "ip.dst")
     summary.domains_seen = ";".join(domains_seen(p))
@@ -297,6 +342,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--out-dir", default="./validation_l3", help="Directory for CSV/JSON validation reports.")
     ap.add_argument("--captures", nargs="*", default=EXPECTED_CAPTURES, help="Capture names to validate.")
     ap.add_argument("--strict", action="store_true", help="Return non-zero for WARN as well as FAIL.")
+    ap.add_argument("--expect-ip", action="append", default=[], help="Require at least one packet involving this IP in any validated capture. Repeatable.")
+    ap.add_argument("--expect-port", action="append", default=[], type=int, help="Require at least one TCP or UDP packet with this port in any validated capture. Repeatable.")
+    ap.add_argument("--expect-flow", action="append", default=[], help="Require packets matching src,dst,port. Example: 10.10.0.60,10.20.0.100,1883. Repeatable.")
     args = ap.parse_args(argv)
 
     pcap_dir = Path(args.pcap_dir)
@@ -339,6 +387,37 @@ def main(argv: Optional[List[str]] = None) -> int:
     total_rtsp = sum(max(0, s.rtsp_packets) for s in summaries)
     total_8554 = sum(max(0, s.port_8554_packets) for s in summaries)
 
+    expectation_rows: List[Dict[str, object]] = []
+    expectation_failures = 0
+    existing_pcaps = [Path(s.pcap) for s in summaries if s.exists and s.size_bytes > 0]
+
+    def check_expectation(label: str, display_filter: str) -> int:
+        count = 0
+        for p in existing_pcaps:
+            c = tshark_filter_count(p, display_filter)
+            if c > 0:
+                count += c
+        status = "OK" if count > 0 else "FAIL"
+        expectation_rows.append({"expectation": label, "filter": display_filter, "packets": count, "status": status})
+        return 0 if count > 0 else 1
+
+    for ip in args.expect_ip:
+        expectation_failures += check_expectation(f"ip {ip}", f"ip.addr == {ip}")
+    for port in args.expect_port:
+        expectation_failures += check_expectation(f"port {port}", f"tcp.port == {port} or udp.port == {port}")
+    for flow in args.expect_flow:
+        parts = [x.strip() for x in flow.split(",")]
+        if len(parts) != 3:
+            expectation_rows.append({"expectation": flow, "filter": "", "packets": 0, "status": "FAIL: expected src,dst,port"})
+            expectation_failures += 1
+            continue
+        src, dst, port = parts
+        expectation_failures += check_expectation(
+            f"flow {src}->{dst}:{port}",
+            f"ip.src == {src} and ip.dst == {dst} and (tcp.port == {port} or udp.port == {port})",
+        )
+    write_csv(out_dir / "attack_expectations.csv", expectation_rows)
+
     lines = []
     lines.append("# IoT-Zoo L3 PCAP Validation Report")
     lines.append("")
@@ -350,6 +429,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     lines.append(f"Total decoded packets across captures: {total_packets}")
     lines.append(f"MQTT packets: protocol={total_mqtt}, tcp.port==1883={total_1883}")
     lines.append(f"RTSP packets: protocol={total_rtsp}, tcp.port==8554={total_8554}")
+    if expectation_rows:
+        lines.append("")
+        lines.append("## Attack/flow expectations")
+        for row in expectation_rows:
+            lines.append(f"- **{row['expectation']}**: {row['status']}; packets={row['packets']}; filter=`{row['filter']}`")
     lines.append("")
     lines.append("## Capture details")
     for s in summaries:
@@ -366,9 +450,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     (out_dir / "VALIDATION_REPORT.md").write_text("\n".join(lines))
 
     print("Validation report written to:", out_dir)
+    if expectation_rows:
+        print(f"Attack expectations: failures={expectation_failures}")
     print(f"OK={ok}, WARN={warn}, FAIL={fail}, total_packets={total_packets}, mqtt={total_mqtt}/{total_1883}, rtsp={total_rtsp}/{total_8554}")
 
-    if fail > 0:
+    if fail > 0 or expectation_failures > 0:
         return 2
     if args.strict and warn > 0:
         return 1

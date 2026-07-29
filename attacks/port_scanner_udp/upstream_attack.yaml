@@ -1,0 +1,24 @@
+id: recon_port_scanner_udp
+name: Port Scanner UDP
+category: 1) Reconnaissance and Discovery
+subcategory: 1.2 Port, service, OS, and vulnerability scanning
+description: UDP port scan of the target.
+image: attack-port-scanner-udp:latest
+container_name: attack-port-scanner-udp
+max_runtime_s: 300
+target_services:
+- target IP service
+target_mapping:
+  target: target_ip
+mitre:
+- https://attack.mitre.org/tactics/TA0043/
+- https://attack.mitre.org/tactics/TA0007/
+- https://attack.mitre.org/techniques/T1590/
+- https://attack.mitre.org/techniques/T1595/
+- https://attack.mitre.org/techniques/T1595/001/
+- https://attack.mitre.org/techniques/T1046/
+params:
+- key: target_ip
+  label: Target IP address or FQDN
+  kind: ip
+  placeholder: __HOST_IP__

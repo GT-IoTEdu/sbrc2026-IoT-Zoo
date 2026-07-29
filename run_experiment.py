@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import ipaddress
 import os
 import re
 import shlex
@@ -25,6 +26,8 @@ import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+import yaml
 
 import topology_loader as loader
 
@@ -455,13 +458,44 @@ def _route_cmd(route: Dict[str, Any]) -> str:
 
 
 def _configure_node_routes(node: Any, entry: Dict[str, Any]) -> None:
+    """Configure routes inside a Docker/Containernet node.
+
+    Containernet containers may also keep Docker's own eth0 interface
+    (for example 172.17.0.0/16).  The emulated interface is the short
+    interface name assigned in _build_l3() (h000xx).  Route installation must
+    therefore explicitly use that interface instead of relying on Linux to
+    infer the device.  This is especially important for attack containers,
+    because their image CMD is a plain shell and they should follow the same
+    routing pattern as the IoT device containers.
+    """
+    intf = str(entry.get("_intf_name", "eth0"))
+    ip_cidr = str(entry.get("ip_cidr", entry.get("ip", ""))).strip()
+
+    node.cmd(f"ip link set {shlex.quote(intf)} up > /dev/null 2>&1 || true")
+
+    # Re-assert the emulated address and connected route.  This is idempotent
+    # and prevents the container's Docker eth0 route from being selected.
+    try:
+        iface = ipaddress.ip_interface(ip_cidr)
+        ip_addr = str(iface.ip)
+        subnet = str(iface.network)
+        node.cmd(f"ip addr replace {shlex.quote(ip_cidr)} dev {shlex.quote(intf)} > /dev/null 2>&1 || true")
+        node.cmd(f"ip route replace {shlex.quote(subnet)} dev {shlex.quote(intf)} src {shlex.quote(ip_addr)} > /dev/null 2>&1 || true")
+    except ValueError:
+        pass
+
     node.cmd("ip route del default 2>/dev/null || true")
     if entry.get("gateway"):
-        node.cmd(f"ip route add default via {shlex.quote(str(entry['gateway']))}")
+        # Use dev+onlink because Docker containers can have an additional eth0
+        # interface.  Without this, `ip route add default via <gateway>` may
+        # silently fail or choose the wrong path in some images.
+        node.cmd(
+            f"ip route replace default via {shlex.quote(str(entry['gateway']))} "
+            f"dev {shlex.quote(intf)} onlink > /dev/null 2>&1 || true"
+        )
     for route in entry.get("routes", []) or []:
-        node.cmd(_route_cmd(route))
-    intf = str(entry.get("_intf_name", "eth0"))
-    node.cmd(f"ip link set {shlex.quote(intf)} up > /dev/null 2>&1 || true")
+        node.cmd(_route_cmd(route) + " > /dev/null 2>&1 || true")
+
     node.cmd(f"ethtool -K {shlex.quote(intf)} tx off rx off sg off tso off gso off gro off > /dev/null 2>&1 || true")
 
 
@@ -742,8 +776,25 @@ def build_and_run(plan: Dict[str, Any]) -> None:
                     node.cmd(cmd)
             start = entry.get("start")
             if start:
+                # Re-apply L3 route setup immediately before long-running clients
+                # and attack processes start.  This keeps attack containers aligned
+                # with regular IoT device containers even when Docker's default eth0
+                # interface is also present.
+                if plan.get("mode") == "l3":
+                    _configure_node_routes(node, entry)
                 log_path = entry.get("log", "/dev/null")
-                node.cmd(f"{start} > {log_path} 2>&1 &")
+                if log_path and log_path not in ("/dev/null", "null"):
+                    log_dir = os.path.dirname(str(log_path)) or "/tmp"
+                    node.cmd(f"mkdir -p {shlex.quote(log_dir)} 2>/dev/null || true")
+                # Run the whole start expression in one background shell.
+                # Important: do not append redirection directly to `start`, because
+                # commands such as `sleep ...; attack; echo ... > log &` would only
+                # redirect/background the final command. This made attack containers
+                # appear to finish without producing traffic/logs.
+                quoted_start = shlex.quote(str(start))
+                quoted_log = shlex.quote(str(log_path))
+                pidfile = f"/tmp/iotzoo_start_{_safe_label(entry.get('name', 'node'))}.pid"
+                node.cmd(f"/bin/sh -lc {quoted_start} > {quoted_log} 2>&1 & echo $! > {shlex.quote(pidfile)}")
 
         duration = int(plan["experiment"]["time"])
         info(f"*** Running simulation for {duration}s...\n")
@@ -770,6 +821,287 @@ def build_and_run(plan: Dict[str, Any]) -> None:
                 info("*** Cleaning completed.\n")
 
 
+
+def _load_yaml_file(path: Union[str, os.PathLike]) -> Dict[str, Any]:
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    if not isinstance(data, dict):
+        raise loader.TopologyError(f"YAML file must contain a mapping: {path}")
+    return data
+
+
+def _plan_services_by_name(plan: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    services = {str(s["name"]): s for s in plan.get("services", [])}
+    profiles = {str(p["name"]): p for p in plan.get("profiles", [])}
+    return {**services, **profiles}
+
+
+def _used_ips(plan: Dict[str, Any]) -> set:
+    used = set()
+    for section in ("services", "profiles"):
+        for entry in plan.get(section, []) or []:
+            if entry.get("ip"):
+                used.add(str(entry["ip"]))
+    for router in plan.get("routers", []) or []:
+        for iface in router.get("interfaces", []) or []:
+            if iface.get("ip"):
+                used.add(str(iface["ip"]))
+    return used
+
+
+def _resolve_ip_or_name(plan: Dict[str, Any], value: Any) -> str:
+    if value is None:
+        return ""
+    raw = str(value).strip()
+    by_name = _plan_services_by_name(plan)
+    if raw in by_name:
+        return str(by_name[raw]["ip"])
+    return raw
+
+
+def _resolve_target_list(plan: Dict[str, Any], values: Any) -> List[str]:
+    if values is None:
+        return []
+    if isinstance(values, str):
+        values = [v for v in re.split(r"[,\s]+", values) if v]
+    if not isinstance(values, list):
+        raise loader.TopologyError(f"targets must be a list or string, got {values!r}")
+    return [_resolve_ip_or_name(plan, v) for v in values]
+
+
+def _allocate_attack_ip(plan: Dict[str, Any], network_name: str, preferred: Optional[str] = None, start_ip: Optional[str] = None) -> str:
+    if network_name not in plan.get("networks", {}):
+        raise loader.TopologyError(f"attack network {network_name!r} not found in topology")
+    net_cfg = plan["networks"][network_name]
+    subnet = ipaddress.ip_network(str(net_cfg["subnet"]), strict=False)
+    used = _used_ips(plan)
+    if preferred:
+        ip = ipaddress.ip_address(str(preferred))
+        if ip not in subnet:
+            raise loader.TopologyError(f"attack IP {preferred} is outside network {network_name} ({subnet})")
+        if str(ip) in used:
+            raise loader.TopologyError(f"attack IP {preferred} is already used in the topology")
+        return str(ip)
+    start = ipaddress.ip_address(start_ip) if start_ip else None
+    for ip in subnet.hosts():
+        if start and ip < start:
+            continue
+        s_ip = str(ip)
+        if s_ip not in used:
+            return s_ip
+    raise loader.TopologyError(f"no free IP address available in network {network_name}")
+
+
+def _env_key(key: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]", "_", str(key)).upper()
+
+
+def _env_value(value: Any) -> str:
+    if isinstance(value, list):
+        return ",".join(str(v) for v in value)
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    return str(value)
+
+
+def _attack_command(entry: Dict[str, Any], args: List[str], env: Dict[str, Any], start_s: int, duration_s: int) -> str:
+    env_map = {str(k): _env_value(v) for k, v in env.items() if v is not None}
+    env_parts = " ".join(f"{_env_key(k)}={shlex.quote(v)}" for k, v in sorted(env_map.items()))
+    arg_parts = " ".join(shlex.quote(str(a)) for a in args if a is not None and str(a) != "")
+    timeout_s = max(1, int(duration_s) + 5)
+    start_delay = max(0, int(start_s))
+    # Diagnostics run inside the attack container. They make route/image issues
+    # visible in /tmp/iot_zoo_l3_logs/<attack>.log instead of silently producing
+    # an empty attack trace.
+    diag = (
+        "echo '[attack] network diagnostics'; "
+        "(ip -4 addr show 2>&1 || true); "
+        "(ip route show 2>&1 || true); "
+    )
+    prefix = f"sleep {start_delay}; echo '[attack] starting {entry['name']} type={entry['attack_type']}'; " + diag
+    command = f"env {env_parts} timeout {timeout_s} /iotzoo_attack/entrypoint.sh {arg_parts}"
+    return prefix + command + f"; rc=$?; echo '[attack] finished {entry['name']} rc='${{rc}}; exit $rc"
+
+
+def _append_attack_firewall_rule(plan: Dict[str, Any], src_ip: str, target_ip: str, proto: str, port: Optional[int]) -> None:
+    if plan.get("mode") != "l3":
+        return
+    for router in plan.get("routers", []) or []:
+        if router.get("name") != "r_edge":
+            continue
+        firewall = router.setdefault("firewall", {})
+        allow = firewall.setdefault("allow", [])
+        rule: Dict[str, Any] = {"src": f"{src_ip}/32", "dst": f"{target_ip}/32"}
+        if proto:
+            rule["proto"] = proto
+        if port and proto in {"tcp", "udp"}:
+            rule["dport"] = int(port)
+        if rule not in allow:
+            allow.append(rule)
+
+
+def apply_attack_scenarios(plan: Dict[str, Any], scenario_paths: Optional[List[str]]) -> Dict[str, Any]:
+    """Inject attack containers from one or more attack-scenario YAML files.
+
+    The benign topology stays unchanged. Each enabled attack becomes an extra
+    service container connected to the requested network, with a delayed start
+    command controlled by start_s/duration_s. This allows isolated and combined
+    attacks without duplicating the full topology YAML.
+    """
+    if not scenario_paths:
+        plan["attack_scenarios"] = []
+        return plan
+
+    catalog_path = CURRENT_DIR / "attacks" / "attack_catalog.yaml"
+    catalog = _load_yaml_file(catalog_path)
+    if not isinstance(catalog, dict) or not catalog:
+        raise loader.TopologyError(f"attack catalog is empty or invalid: {catalog_path}")
+
+    injected: List[Dict[str, Any]] = []
+    for scenario_path in scenario_paths:
+        scenario_file = Path(scenario_path)
+        if not scenario_file.is_absolute():
+            scenario_file = CURRENT_DIR / scenario_file
+        scenario = _load_yaml_file(scenario_file)
+        meta = scenario.get("scenario", {}) or {}
+        attacks = scenario.get("attacks", []) or []
+        if not isinstance(attacks, list):
+            raise loader.TopologyError(f"attacks must be a list in {scenario_file}")
+        ip_start = str(meta.get("ip_start", "10.10.0.60"))
+        default_network = str(meta.get("default_network", "external"))
+        for idx, attack in enumerate(attacks, 1):
+            if not attack or not attack.get("enabled", True):
+                continue
+            attack_type = str(attack.get("type", "")).strip()
+            if attack_type not in catalog:
+                raise loader.TopologyError(f"unknown attack type {attack_type!r} in {scenario_file}")
+            spec = catalog[attack_type]
+            name = str(attack.get("name") or f"atk_{attack_type}_{idx}")
+            existing_names = {e["name"] for e in plan.get("services", []) + plan.get("profiles", [])}
+            if name in existing_names:
+                raise loader.TopologyError(f"attack node name {name!r} already exists in topology")
+            network_name = str(attack.get("network") or spec.get("default_network") or default_network)
+            net_cfg = plan["networks"].get(network_name)
+            if not net_cfg:
+                raise loader.TopologyError(f"attack {name}: network {network_name!r} not found")
+            ip = _allocate_attack_ip(plan, network_name, preferred=attack.get("ip"), start_ip=ip_start)
+
+            # Resolve target(s).
+            target_ip = str(attack.get("target_ip") or "")
+            target = attack.get("target") or spec.get("default_target")
+            if not target_ip and target:
+                target_ip = _resolve_ip_or_name(plan, target)
+            targets = attack.get("targets", spec.get("default_targets"))
+            target_ips = _resolve_target_list(plan, targets)
+            target_net = str(attack.get("target_net") or spec.get("default_target_net") or "")
+            target_port = attack.get("target_port", spec.get("default_target_port"))
+            target_port_int = int(target_port) if target_port not in (None, "") else None
+
+            params = dict(spec.get("params", {}) or {})
+            params.update(attack.get("params", {}) or {})
+            start_s = int(attack.get("start_s", spec.get("default_start_s", 30)))
+            duration_s = int(attack.get("duration_s", spec.get("default_duration_s", params.get("duration_s", 10))))
+            params["duration_s"] = duration_s
+            if target_port_int is not None:
+                params["target_port"] = target_port_int
+            if target_ip:
+                params["target_ip"] = target_ip
+            if target_ips:
+                params["targets"] = " ".join(target_ips)
+            if target_net:
+                params["target_net"] = target_net
+            if "ports" in params and isinstance(params["ports"], list):
+                params["ports"] = ",".join(str(p) for p in params["ports"])
+
+            args: List[str] = []
+            for arg in spec.get("args", []) or []:
+                if arg == "target_ip":
+                    args.append(target_ip)
+                elif arg == "target_port":
+                    args.append(str(target_port_int or ""))
+                elif arg == "targets":
+                    args.append(" ".join(target_ips))
+                elif arg == "target_net":
+                    args.append(target_net)
+                else:
+                    args.append(str(params.get(arg, "")))
+
+            entry: Dict[str, Any] = {
+                "name": name,
+                "kind": "attack",
+                "attack_type": attack_type,
+                "image": spec["image"],
+                "ip": ip,
+                "ip_cidr": f"{ip}/{net_cfg.get('prefixlen', 24)}",
+                "network": network_name,
+                "switch": net_cfg["switch"],
+                "gateway": net_cfg.get("gateway"),
+                "routes": list(net_cfg.get("routes", []) or []),
+                "privileged": bool(attack.get("privileged", spec.get("privileged", False))),
+                "link_up": True,
+                "dcmd": "/bin/sh",
+                "boot": [],
+                "boot_delay": 0,
+                "env": { _env_key(k): _env_value(v) for k, v in params.items() },
+                "start": _attack_command({"name": name, "attack_type": attack_type}, args, params, start_s, duration_s),
+                "log": f"/tmp/{name}.log",
+                "_attack_meta": {
+                    "scenario": str(meta.get("name") or scenario_file.stem),
+                    "scenario_file": str(scenario_file),
+                    "type": attack_type,
+                    "target_ip": target_ip,
+                    "target_port": target_port_int,
+                    "target_net": target_net,
+                    "targets": target_ips,
+                    "start_s": start_s,
+                    "duration_s": duration_s,
+                },
+            }
+            plan.setdefault("services", []).append(entry)
+            injected.append(entry)
+            # Make successful external MQTT/recon/flood scenarios possible while retaining the baseline restricted edge.
+            if bool(attack.get("allow_through_edge", spec.get("allow_through_edge", False))):
+                if target_ip:
+                    proto = "icmp" if attack_type == "icmp_flood" or attack_type == "ping_sweep" else ("udp" if attack_type in {"udp_flood", "port_scanner_udp"} else "tcp")
+                    _append_attack_firewall_rule(plan, ip, target_ip, proto, target_port_int)
+                for target_item in target_ips:
+                    # For scans, allow configured ports to reduce firewall artifacts unless explicitly disabled.
+                    ports = params.get("ports")
+                    proto = "udp" if attack_type == "port_scanner_udp" else "tcp"
+                    if isinstance(ports, str) and ports:
+                        for p in str(ports).split(","):
+                            try:
+                                _append_attack_firewall_rule(plan, ip, target_item, proto, int(p))
+                            except ValueError:
+                                pass
+                    else:
+                        _append_attack_firewall_rule(plan, ip, target_item, proto, target_port_int)
+                if target_net and attack_type == "ping_sweep":
+                    # Keep this broad only for scenario-scoped attack nodes.
+                    _append_attack_firewall_rule(plan, ip, target_net, "icmp", None)
+        plan.setdefault("attack_scenarios", []).append({"file": str(scenario_file), "name": str(meta.get("name") or scenario_file.stem)})
+
+    attack_rows = []
+    for e in injected:
+        row = dict(e.get("_attack_meta", {}) or {})
+        row.update({"name": e["name"], "ip": e["ip"]})
+        attack_rows.append(row)
+    plan["attacks"] = attack_rows
+    return plan
+
+
+def attack_summary(plan: Dict[str, Any]) -> str:
+    attacks = plan.get("attacks", []) or []
+    if not attacks:
+        return "Attacks  : none"
+    parts = []
+    for a in attacks:
+        target = a.get("target_ip") or a.get("target_net") or ",".join(a.get("targets") or []) or "-"
+        port = f":{a.get('target_port')}" if a.get("target_port") else ""
+        parts.append(f"{a.get('name')}[{a.get('type')}] {a.get('ip')} -> {target}{port} @ {a.get('start_s')}s/{a.get('duration_s')}s")
+    return "Attacks  : " + "; ".join(parts)
+
+
 def parse_scale(values: Optional[List[str]]) -> Dict[str, int]:
     out: Dict[str, int] = {}
     for value in values or []:
@@ -791,6 +1123,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-t", "--time", type=int, default=None, help="experiment duration in seconds")
     parser.add_argument("-o", "--output", default=None, help="PCAP output path")
     parser.add_argument("--topology", default=str(DEFAULT_TOPOLOGY), help="topology YAML file")
+    parser.add_argument("--attack-scenario", action="append", help="attack scenario YAML file to layer on top of the benign topology; can be repeated")
     parser.add_argument("--include", action="append", help="domain/template to keep; comma-separated or repeated")
     parser.add_argument("--exclude", action="append", help="domain/template to drop; comma-separated or repeated")
     parser.add_argument("--scale", action="append", help="scale a service or diversity-backed profile: name=N")
@@ -815,7 +1148,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             scale=parse_scale(args.scale),
             brokers=args.brokers,
         )
+        apply_attack_scenarios(plan, args.attack_scenario)
         print(loader.summary(plan))
+        print(attack_summary(plan))
         if args.dump_config:
             loader.dump(plan, args.dump_config)
             print(f"\n*** Effective config written to {args.dump_config}")

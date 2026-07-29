@@ -1,0 +1,33 @@
+id: dos_psh_flood
+name: PSH Flood
+category: 6) Denial of Service and Impact
+subcategory: 6.1 Network/transport floods (ICMP/TCP/UDP)
+description: TCP packet flood with the PSH flag set.
+image: attack-psh-flood:latest
+container_name: attack-psh-flood
+max_runtime_s: 10
+target_services:
+- target IP service
+target_mapping:
+  target: target_ip
+  port: target_port
+details_warning: This attack can generate a large amount of data if captured until its automatic completion. For demonstrations, use less than 5 seconds of execution.
+mitre:
+- https://attack.mitre.org/tactics/TA0040/
+- https://attack.mitre.org/techniques/T1498/
+- https://attack.mitre.org/techniques/T1498/001/
+params:
+- key: target_ip
+  label: Target IP address or FQDN
+  kind: ip
+  placeholder: __HOST_IP__
+- key: target_port
+  label: Target port
+  kind: port
+  placeholder: '8080'
+  default: 8080
+intensity_params:
+- key: duration_s
+- key: count
+- key: rate_pps
+- key: payload_size

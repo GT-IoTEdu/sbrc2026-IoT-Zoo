@@ -6,12 +6,14 @@ MODE="${1:---help}"
 
 usage() {
   cat <<USAGE
-Usage: $0 --demo | --full
+Usage: $0 --demo | --full | --attacks | --full-with-attacks
 
 Options:
   --demo   Build only the images required by demo_experiment.py.
            Basic demo data is prepared separately with scripts/prepare_demo_data.sh.
   --full   Build all device images using the datasets stored under devices/.
+  --attacks   Build only the imported AttackZoo-compatible attack images.
+  --full-with-attacks   Build all device images and then the attack images.
 USAGE
 }
 
@@ -54,6 +56,13 @@ case "$MODE" in
     build_image "myzoo/nurse_stress" "devices/nurse-stress-prediction"
     build_image "myzoo/smart_building_m5" "devices/smart_building_m5"
     echo "Full image build completed."
+    ;;
+  --attacks)
+    "$PROJECT_ROOT/scripts/build_attack_images.sh"
+    ;;
+  --full-with-attacks)
+    "$0" --full
+    "$PROJECT_ROOT/scripts/build_attack_images.sh"
     ;;
   --help|-h|help)
     usage

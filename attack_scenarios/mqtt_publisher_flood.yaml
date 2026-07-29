@@ -1,0 +1,20 @@
+scenario:
+  name: mqtt_publisher_flood_external
+  description: External MQTT publish flood against broker_core after benign warmup.
+  default_network: external
+  ip_start: 10.10.0.60
+
+attacks:
+  - name: atk_mqtt_publisher_flood_core
+    type: mqtt_publisher_flood
+    enabled: true
+    target: broker_core
+    target_port: 1883
+    start_s: 35
+    duration_s: 20
+    params:
+      count: 600
+      delay_ms: 10
+      payload_size: 128
+      qos: 0
+      topic_prefix: attack/mqtt_publisher_flood/core
